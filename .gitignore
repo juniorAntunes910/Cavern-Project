@@ -1,0 +1,18 @@
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.env
+android/.gradle/
+windows/flutter/ephemeral/
+web/dist/
+web/.env
+
+# Locally generated desktop packages and development utilities
+web/release/
+cloudflared.exe
+.tools/cloudflared.exe
+
+# Runtime logs
+*.log

@@ -1,0 +1,22 @@
+name: cavern_project
+description: Personal discipline, reading and progress tracker.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.4.2
+  go_router: ^18.0.1
+  supabase_flutter: ^2.17.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
