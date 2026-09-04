@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cavern</string>
+    <string name="title_activity_main">Cavern</string>
+    <string name="package_name">com.cavern.app</string>
+    <string name="custom_url_scheme">com.cavern.app</string>
+</resources>

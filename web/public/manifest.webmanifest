@@ -1,0 +1,43 @@
+{
+  "name": "Cavern",
+  "short_name": "Cavern",
+  "description": "Disciplina, hábitos, leitura e evolução — mesmo sem internet.",
+  "id": "/",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#0d0f0e",
+  "theme_color": "#101311",
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar hábito",
+      "short_name": "Hábitos",
+      "url": "/habits",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Abrir biblioteca",
+      "short_name": "Livros",
+      "url": "/books",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
