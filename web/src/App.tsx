@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { allowedEmail, supabase, supabaseConfigured } from './lib/supabase'
-import { Caverns } from './features/Caverns'
 import { Goals } from './features/Goals'
 import { Habits } from './features/Habits'
 import { Progress } from './features/Progress'
 import { CheckIn } from './features/CheckIn'
 import { Books } from './features/Books'
 import { Reader } from './features/Reader'
+import { Finance } from './features/Finance'
 import { InstallBanner, InstallControl } from './components/AppInstall'
 import { NotificationSettings } from './components/NotificationSettings'
 import { getLocalGoals, getLocalHabitLogs, getLocalHabits, goalProgress, overallStreak, today } from './lib/local-store'
@@ -19,7 +19,7 @@ import './theme-overrides.css'
 import './reader.css'
 
 type Session = Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']
-const nav = [['/', 'Home'], ['/caverns', 'Cavernas'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/books', 'Livros'], ['/statistics', 'Progresso'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
+const nav = [['/', 'Home'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/statistics', 'Progresso'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
 
 export default function App() {
   const [session, setSession] = useState<Session>(null)
@@ -91,7 +91,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       <ThemeToggle />
     </aside>
     <main className="content"><InstallBanner /><Routes>
-    <Route path="/" element={<Home />} /><Route path="/caverns" element={<Caverns />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Progress />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="/" element={<Home />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Progress />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
   </Routes></main></div>
 }
 
@@ -104,7 +104,7 @@ function ThemeToggle() {
 function Home() {
   useLocalRevision()
   const logs = getLocalHabitLogs(); const habits = getLocalHabits().filter(habit => habit.active); const goals = getLocalGoals().filter(goal => goal.status === 'active'); const streak = overallStreak(logs); const completedToday = logs.filter(log => log.date === today() && log.status === 'completed').length; const completedGoals = goals.filter(goal => goalProgress(goal, logs) >= goal.target_value).length
-  return <><header><p className="eyebrow">CAVERN</p><h1>Bom dia.</h1><p>O Cavern transforma intenção em prática: você define um ciclo de foco, estabelece metas e registra hábitos para enxergar sua evolução sem depender da memória.</p></header><section className="home-intro" aria-label="Como o Cavern funciona"><div><p className="eyebrow">COMO FUNCIONA</p><h2>Um lugar para construir constância.</h2><p>Use as ferramentas abaixo em conjunto ou comece por apenas uma. O objetivo não é preencher tudo, e sim ter clareza sobre o próximo passo.</p></div><ol><li><strong>Crie uma Caverna</strong><span>para delimitar uma fase de foco, como um mês ou um projeto.</span></li><li><strong>Defina metas</strong><span>para transformar essa intenção em alvos acompanháveis.</span></li><li><strong>Registre hábitos e leitura</strong><span>para alimentar o progresso com ações reais do dia a dia.</span></li><li><strong>Faça check-ins</strong><span>para refletir, ajustar o rumo e manter o ritmo sustentável.</span></li></ol><div className="home-intro-actions"><NavLink className="button" to="/caverns">Começar uma Caverna</NavLink><NavLink className="subtle" to="/habits">Criar um hábito</NavLink></div></section><section className="metric-row"><Metric label="Sequência atual" value={`${streak} dias`} /><Metric label="Hábitos hoje" value={`${completedToday} / ${habits.length}`} /><Metric label="Metas no alvo" value={`${completedGoals} / ${goals.length}`} /></section><section className="home-grid"><article className="panel"><h2>Hoje</h2>{habits.length === 0 ? <p>Crie seu primeiro hábito para começar.</p> : <div className="home-list">{habits.slice(0, 4).map(habit => <NavLink to="/habits" key={habit.id}><span>{habit.name}</span><small>{logs.some(log => log.habit_id === habit.id && log.date === today() && log.status === 'completed') ? 'Concluído' : 'Pendente'}</small></NavLink>)}</div>}<NavLink className="button" to="/habits">Registrar hábito</NavLink></article><article className="panel"><h2>Metas ativas</h2>{goals.length === 0 ? <p>Defina uma meta mensurável.</p> : <div className="home-list">{goals.slice(0, 4).map(goal => <NavLink to="/goals" key={goal.id}><span>{goal.title}</span><small>{goalProgress(goal, logs)} / {goal.target_value} {goal.unit}</small></NavLink>)}</div>}<NavLink className="button secondary-button" to="/goals">Ver metas</NavLink></article></section></>
+  return <><header><p className="eyebrow">CAVERN</p><h1>Bom dia.</h1><p>Defina metas, conecte hábitos e acompanhe seu progresso e suas finanças com clareza.</p></header><section className="home-intro"><div><p className="eyebrow">COMO FUNCIONA</p><h2>Um lugar para construir constância.</h2></div><ol><li><strong>Defina metas</strong><span>para transformar intenção em alvos acompanháveis.</span></li><li><strong>Conecte hábitos</strong><span>para que a prática diária tenha direção.</span></li><li><strong>Registre leitura e finanças</strong><span>para ver sua evolução completa.</span></li></ol><div className="home-intro-actions"><NavLink className="button" to="/goals">Criar uma meta</NavLink><NavLink className="subtle" to="/finance">Abrir financeiro</NavLink></div></section><section className="metric-row"><Metric label="Sequência atual" value={`${streak} dias`} /><Metric label="Hábitos hoje" value={`${completedToday} / ${habits.length}`} /><Metric label="Metas no alvo" value={`${completedGoals} / ${goals.length}`} /></section><section className="home-grid"><article className="panel"><h2>Hoje</h2>{habits.length === 0 ? <p>Crie seu primeiro hábito para começar.</p> : <div className="home-list">{habits.slice(0, 4).map(habit => <NavLink to="/habits" key={habit.id}><span>{habit.name}</span><small>{logs.some(log => log.habit_id === habit.id && log.date === today() && log.status === 'completed') ? 'Concluído' : 'Pendente'}</small></NavLink>)}</div>}<NavLink className="button" to="/habits">Registrar hábito</NavLink></article><article className="panel"><h2>Metas ativas</h2>{goals.length === 0 ? <p>Defina uma meta mensurável.</p> : <div className="home-list">{goals.slice(0, 4).map(goal => <NavLink to="/goals" key={goal.id}><span>{goal.title}</span><small>{goalProgress(goal, logs)} / {goal.target_value} {goal.unit}</small></NavLink>)}</div>}<NavLink className="button secondary-button" to="/goals">Ver metas</NavLink></article></section></>
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <article className="metric"><p>{label}</p><strong>{value}</strong></article> }

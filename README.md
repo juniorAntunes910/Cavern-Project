@@ -2,7 +2,7 @@
 
 > **Disciplina, leitura e progresso — em um espaço seu.**
 
-O **Cavern** é um aplicativo pessoal para transformar intenção em prática. Crie ciclos de foco, acompanhe hábitos e metas, registre leituras e faça check-ins para enxergar sua evolução com clareza.
+O **Cavern** é um aplicativo pessoal para transformar intenção em prática. Acompanhe hábitos e metas, registre leituras, finanças e check-ins para enxergar sua evolução com clareza.
 
 ![React](https://img.shields.io/badge/React-19-20232A?logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
@@ -13,9 +13,9 @@ O **Cavern** é um aplicativo pessoal para transformar intenção em prática. C
 
 | Área | Para quê serve |
 | --- | --- |
-| **Cavernas** | Organize uma fase de foco — um mês, projeto ou desafio. |
 | **Hábitos** | Registre o que importa hoje e mantenha suas sequências visíveis. |
 | **Metas** | Transforme intenções em objetivos mensuráveis. |
+| **Financeiro** | Controle lançamentos, metas monetárias e sua posição em BTC. |
 | **Livros e leitor** | Gerencie sua biblioteca, abra PDFs e acompanhe a leitura. |
 | **Progresso** | Veja consistência, avanço de metas e o ritmo que está construindo. |
 | **Check-ins** | Pare, reflita e ajuste a rota sem perder o contexto. |
@@ -101,7 +101,7 @@ Os instaladores e arquivos empacotados são gerados em `web/release/` e não faz
 ```text
 Cavern-Project/
 ├── web/                    # Aplicação React, PWA, Android e Electron
-│   ├── src/features/        # Cavernas, hábitos, metas, livros e progresso
+│   ├── src/features/        # Hábitos, metas, finanças, livros e progresso
 │   ├── src/lib/             # Dados locais, Supabase, PWA e notificações
 │   ├── android/             # Projeto Capacitor para Android
 │   └── electron/            # Empacotamento para Windows

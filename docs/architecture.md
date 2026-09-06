@@ -28,9 +28,9 @@ lib/
   features/
     auth/              # sessão e autenticação email/senha
     dashboard/
-    caverns/
     goals/
     habits/
+    finance/
     streaks/
     books/
     reader/

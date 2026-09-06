@@ -16,8 +16,9 @@ export function Books() {
     try {
       const document = await openPdf(file)
       const title = file.name.replace(/\.pdf$/i, '')
-      const next = addLocalBook({ title, author: null, file_name: file.name, total_pages: document.numPages })
-      await savePdf(next[0].id, file)
+      const bookId = crypto.randomUUID()
+      await savePdf(bookId, file)
+      const next = addLocalBook({ id: bookId, title, author: null, file_name: file.name, total_pages: document.numPages })
       await document.cleanup()
       setBooks(next)
       setMessage('Livro adicionado à biblioteca.')

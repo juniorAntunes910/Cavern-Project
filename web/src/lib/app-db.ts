@@ -35,6 +35,17 @@ export async function setDatabaseValue<T>(key: string, value: T): Promise<void> 
   database.close()
 }
 
+export async function deleteDatabaseValue(key: string): Promise<void> {
+  const database = await openDatabase()
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(storeName, 'readwrite')
+    transaction.objectStore(storeName).delete(key)
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+  })
+  database.close()
+}
+
 export function persistDatabaseValue<T>(key: string, value: T) {
   void setDatabaseValue(key, value).catch(error => console.error('Não foi possível persistir os dados locais.', error))
 }

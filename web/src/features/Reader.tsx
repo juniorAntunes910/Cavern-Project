@@ -18,6 +18,7 @@ export function Reader() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const reader = useRef<HTMLElement>(null)
   const sessionId = useRef<string | null>(null)
+  const renderTask = useRef<{ cancel: () => void } | null>(null)
 
   const goTo = useCallback((next: number) => {
     if (!book || !sessionId.current) return
@@ -47,26 +48,31 @@ export function Reader() {
     let cancelled = false
     async function render() {
       if (!bookId || !canvas.current) return
+      renderTask.current?.cancel()
+      renderTask.current = null
       setError(''); setLoading(true)
       const blob = await loadPdf(bookId)
       if (!blob) { setError('Arquivo PDF não encontrado. Exclua este registro e importe o PDF novamente.'); setLoading(false); return }
       const pdf = await openPdf(blob)
-      const safePage = Math.min(Math.max(page, 1), pdf.numPages)
-      const pdfPage = await pdf.getPage(safePage)
-      const baseViewport = pdfPage.getViewport({ scale: 1 })
-      const availableWidth = fullscreen ? window.innerWidth - 72 : 900
-      const viewport = pdfPage.getViewport({ scale: Math.min(1.8, Math.max(1.2, availableWidth / baseViewport.width)) })
-      const target = canvas.current
-      target.width = viewport.width
-      target.height = viewport.height
-      const context = target.getContext('2d')
-      if (!context) throw new Error('Canvas não disponível')
-      await pdfPage.render({ canvas: target, canvasContext: context, viewport }).promise
-      await pdf.cleanup()
-      if (!cancelled) { updateLocalBook(bookId, { current_page: safePage, status: 'reading' }); setStatus(`Página ${safePage} de ${pdf.numPages} carregada.`); setLoading(false) }
+      try {
+        const safePage = Math.min(Math.max(page, 1), pdf.numPages)
+        const pdfPage = await pdf.getPage(safePage)
+        const baseViewport = pdfPage.getViewport({ scale: 1 })
+        const availableWidth = fullscreen ? window.innerWidth - 72 : 900
+        const viewport = pdfPage.getViewport({ scale: Math.min(1.8, Math.max(1.2, availableWidth / baseViewport.width)) })
+        const target = canvas.current
+        if (!target || cancelled) return
+        target.width = Math.ceil(viewport.width); target.height = Math.ceil(viewport.height)
+        const context = target.getContext('2d')
+        if (!context) throw new Error('Canvas não disponível')
+        const task = pdfPage.render({ canvas: target, canvasContext: context, viewport })
+        renderTask.current = task
+        await task.promise
+        if (!cancelled) { if (safePage !== page) setPage(safePage); updateLocalBook(bookId, { current_page: safePage, status: 'reading' }); setStatus(`Página ${safePage} de ${pdf.numPages} carregada.`); setLoading(false) }
+      } finally { renderTask.current = null; await pdf.cleanup() }
     }
     void render().catch((renderError) => { if (!cancelled) { setError(readablePdfError(renderError)); setLoading(false) } })
-    return () => { cancelled = true }
+    return () => { cancelled = true; renderTask.current?.cancel(); renderTask.current = null }
   }, [bookId, fullscreen, page])
 
   async function toggleFullscreen() {
