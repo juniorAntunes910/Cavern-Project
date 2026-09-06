@@ -13,7 +13,7 @@ export type LocalBook = { id: string; title: string; author: string | null; file
 export type LocalReadingSession = { id: string; book_id: string; start_page: number; max_page_reached: number; end_page: number; pages_read: number; started_at: string; ended_at: string | null; duration_seconds: number | null }
 export type LocalCheckIn = { id: string; date: string; discipline: number; focus: number; energy: number; good_today: string; improve_tomorrow: string }
 export type FinanceKind = 'income' | 'expense' | 'transfer' | 'buy_btc' | 'sell_btc' | 'contribution'
-export type LocalFinanceTransaction = { id: string; date: string; kind: FinanceKind; amount_brl: number; category: string; account: string; note: string | null; btc_amount: number | null; btc_unit_price_brl: number | null }
+export type LocalFinanceTransaction = { id: string; date: string; kind: FinanceKind; amount_brl: number; category: string; account: string; note: string | null; btc_amount: number | null; btc_unit_price_brl: number | null; financial_goal_id?: string | null }
 export type LocalFinancialGoal = { id: string; title: string; target_amount: number; currency: 'BRL' | 'BTC'; deadline: string | null; saved_amount: number; status: 'active' | 'completed' | 'cancelled' }
 
 export const localDataKeys = { goals: 'cavern.local.goals.v2', habits: 'cavern.local.habits.v1', habitLogs: 'cavern.local.habit-logs.v1', goalHabitLinks: 'cavern.local.goal-habit-links.v1', books: 'cavern.local.books.v1', sessions: 'cavern.local.reading-sessions.v1', checkins: 'cavern.local.checkins.v1', financeTransactions: 'cavern.local.finance-transactions.v1', financialGoals: 'cavern.local.financial-goals.v1' } as const
@@ -27,12 +27,12 @@ const write = <T>(key: string, value: T[]) => {
 const id = () => crypto.randomUUID()
 
 export function getLocalGoals() { return read<LocalGoal & { cavern_id?: string | null }>(keys.goals).map(({ cavern_id: _cavernId, ...goal }) => ({ ...goal, metric: goal.metric ?? 'custom', manual_progress: goal.manual_progress ?? 0, start_date: goal.start_date ?? today(), end_date: goal.end_date ?? today() })) }
-export function addLocalGoal(goal: Omit<LocalGoal, 'id' | 'status' | 'manual_progress'>) { const next = [{ ...goal, id: id(), status: 'active' as const, manual_progress: 0 }, ...getLocalGoals()]; write(keys.goals, next); return next }
+export function addLocalGoal(goal: Omit<LocalGoal, 'id' | 'status' | 'manual_progress'>) { const created = { ...goal, id: id(), status: 'active' as const, manual_progress: 0 }; const next = [created, ...getLocalGoals()]; write(keys.goals, next); getLocalHabits().filter(habit => habitMatchesGoal(habit, created)).forEach(habit => setHabitGoalLinks(habit.id, [...new Set([...getHabitGoalIds(habit.id), created.id])])); return next }
 export function updateLocalGoal(id: string, changes: Partial<LocalGoal>) { const next = getLocalGoals().map(goal => goal.id === id ? { ...goal, ...changes } : goal); write(keys.goals, next); return next }
 export function deleteLocalGoal(id: string) { const next = getLocalGoals().filter(goal => goal.id !== id); write(keys.goals, next); return next }
 
 export function getLocalHabits() { return read<LocalHabit & { cavern_id?: string | null }>(keys.habits).map(({ cavern_id: _cavernId, ...habit }) => ({ ...habit, category: habit.category ?? 'custom' })) }
-export function addLocalHabit(habit: Omit<LocalHabit, 'id' | 'active'>) { const next = [{ ...habit, id: id(), active: true }, ...getLocalHabits()]; write(keys.habits, next); return next }
+export function addLocalHabit(habit: Omit<LocalHabit, 'id' | 'active'>) { const created = { ...habit, id: id(), active: true }; const next = [created, ...getLocalHabits()]; write(keys.habits, next); getLocalGoals().filter(goal => habitMatchesGoal(created, goal)).forEach(goal => setHabitGoalLinks(created.id, [...new Set([...getHabitGoalIds(created.id), goal.id])])); return next }
 export function updateLocalHabit(id: string, changes: Partial<LocalHabit>) { const next = getLocalHabits().map(habit => habit.id === id ? { ...habit, ...changes } : habit); write(keys.habits, next); return next }
 export function deleteLocalHabit(id: string) { const next = getLocalHabits().filter(habit => habit.id !== id); write(keys.habits, next); write(keys.habitLogs, getLocalHabitLogs().filter(log => log.habit_id !== id)); return next }
 export function getLocalHabitLogs() { return read<LocalHabitLog>(keys.habitLogs) }
@@ -75,3 +75,4 @@ export function goalProgress(goal: LocalGoal, logs = getLocalHabitLogs()) { if (
 export function habitStreak(habitId: string, logs = getLocalHabitLogs(), date = today()) { const complete = new Set(logs.filter(log => log.habit_id === habitId && log.status === 'completed').map(log => log.date)); let cursor = date; if (!complete.has(cursor)) cursor = shiftDate(cursor, -1); let count = 0; while (complete.has(cursor)) { count++; cursor = shiftDate(cursor, -1) } return count }
 export function overallStreak(logs = getLocalHabitLogs(), date = today()) { const activeDates = new Set(logs.filter(log => log.status === 'completed').map(log => log.date)); let cursor = activeDates.has(date) ? date : shiftDate(date, -1); let count = 0; while (activeDates.has(cursor)) { count++; cursor = shiftDate(cursor, -1) } return count }
 function shiftDate(date: string, days: number) { const value = new Date(`${date}T12:00:00`); value.setDate(value.getDate() + days); return value.toLocaleDateString('en-CA') }
+function habitMatchesGoal(habit: LocalHabit, goal: LocalGoal) { return goal.status === 'active' && (goal.metric === 'habit_days' || (goal.metric === 'workouts' && habit.category === 'workout')) }

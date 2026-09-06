@@ -21,7 +21,7 @@ window.addEventListener('appinstalled', () => {
 })
 
 export function isAppInstalled() {
-  return window.matchMedia('(display-mode: standalone)').matches
+  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 }
 
 export function canInstallApp() {
@@ -40,7 +40,9 @@ export async function installApp() {
 export async function registerAppServiceWorker() {
   if (!('serviceWorker' in navigator)) return null
   try {
-    return await navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' })
+    const registration = await navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' })
+    void registration.update()
+    return registration
   } catch (error) {
     console.error('Não foi possível registrar o modo offline.', error)
     return null

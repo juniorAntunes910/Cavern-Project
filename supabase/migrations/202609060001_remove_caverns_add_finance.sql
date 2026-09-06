@@ -41,6 +41,7 @@ create table public.financial_goals (
   status public.finance_goal_status not null default 'active',
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+alter table public.finance_transactions add column financial_goal_id uuid references public.financial_goals(id) on delete set null;
 alter table public.goal_habit_links enable row level security;
 alter table public.finance_transactions enable row level security;
 alter table public.financial_goals enable row level security;

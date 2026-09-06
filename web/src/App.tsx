@@ -83,11 +83,13 @@ function Shell({ profile }: { profile: ReactNode }) {
         Menu
       </button>
       <div className="mobile-brand">CAVERN</div>
+      <StreakBadge compact />
     </div>
     <button className={`mobile-menu-backdrop${menuOpen ? ' is-open' : ''}`} type="button" aria-label="Fechar menu" tabIndex={menuOpen ? 0 : -1} onClick={() => setMenuOpen(false)} />
     <aside id="main-sidebar" className={`sidebar${menuOpen ? ' is-open' : ''}`} aria-label="Menu principal">
       <div className="sidebar-heading"><div className="brand">CAVERN</div><button className="mobile-menu-close" type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
       <nav>{nav.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}</nav>
+      <StreakBadge />
       <ThemeToggle />
     </aside>
     <main className="content"><InstallBanner /><Routes>
@@ -99,6 +101,12 @@ function ThemeToggle() {
   const [theme, setTheme] = useState(() => localStorage.getItem('cavern.theme') ?? 'dark')
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem('cavern.theme', theme) }, [theme])
   return <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
+}
+
+function StreakBadge({ compact = false }: { compact?: boolean }) {
+  useLocalRevision()
+  const streak = overallStreak(getLocalHabitLogs())
+  return <NavLink className={`streak-badge${compact ? ' compact' : ''}`} to="/statistics" aria-label={`Sequência atual: ${streak} dias`}><span aria-hidden="true">🔥</span><strong>{streak}</strong>{!compact && <small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small>}</NavLink>
 }
 
 function Home() {

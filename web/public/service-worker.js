@@ -1,4 +1,4 @@
-const cacheName = 'cavern-shell-v2'
+const cacheName = 'cavern-shell-v3'
 const databaseName = 'cavern-app'
 const storeName = 'records'
 const habitsKey = 'cavern.local.habits.v1'
@@ -69,7 +69,7 @@ async function precacheAppShell() {
     .map(match => new URL(match[1], self.location.origin))
     .filter(url => url.origin === self.location.origin && !url.pathname.startsWith('/src/'))
     .map(url => url.pathname)
-  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', ...documentAssets])])
+  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', '/app-icon-192.png', '/app-icon-512.png', ...documentAssets])])
 }
 
 function openDatabase() {
