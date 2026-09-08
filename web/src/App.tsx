@@ -11,7 +11,7 @@ import { Reader } from './features/Reader'
 import { Finance } from './features/Finance'
 import { InstallBanner, InstallControl } from './components/AppInstall'
 import { NotificationSettings } from './components/NotificationSettings'
-import { getLocalGoals, getLocalHabitLogs, getLocalHabits, goalProgress, overallStreak, today } from './lib/local-store'
+import { getLocalHabitLogs, overallStreak } from './lib/local-store'
 import { startHabitReminderChecks } from './lib/notifications'
 import { useLocalRevision } from './lib/use-local-revision'
 import './App.css'
@@ -19,7 +19,7 @@ import './theme-overrides.css'
 import './reader.css'
 
 type Session = Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']
-const nav = [['/', 'Home'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/statistics', 'Progresso'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
+const nav = [['/', 'Início'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
 
 export default function App() {
   const [session, setSession] = useState<Session>(null)
@@ -93,7 +93,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       <ThemeToggle />
     </aside>
     <main className="content"><InstallBanner /><Routes>
-    <Route path="/" element={<Home />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Progress />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="/" element={<Progress />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
   </Routes></main></div>
 }
 
@@ -106,16 +106,9 @@ function ThemeToggle() {
 function StreakBadge({ compact = false }: { compact?: boolean }) {
   useLocalRevision()
   const streak = overallStreak(getLocalHabitLogs())
-  return <NavLink className={`streak-badge${compact ? ' compact' : ''}`} to="/statistics" aria-label={`Sequência atual: ${streak} dias`}><span aria-hidden="true">🔥</span><strong>{streak}</strong>{!compact && <small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small>}</NavLink>
+  return <NavLink className={`streak-badge${compact ? ' compact' : ''}`} to="/" aria-label={`Sequência atual: ${streak} dias`}><span aria-hidden="true">🔥</span><strong>{streak}</strong>{!compact && <small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small>}</NavLink>
 }
 
-function Home() {
-  useLocalRevision()
-  const logs = getLocalHabitLogs(); const habits = getLocalHabits().filter(habit => habit.active); const goals = getLocalGoals().filter(goal => goal.status === 'active'); const streak = overallStreak(logs); const completedToday = logs.filter(log => log.date === today() && log.status === 'completed').length; const completedGoals = goals.filter(goal => goalProgress(goal, logs) >= goal.target_value).length
-  return <><header><p className="eyebrow">CAVERN</p><h1>Bom dia.</h1><p>Defina metas, conecte hábitos e acompanhe seu progresso e suas finanças com clareza.</p></header><section className="home-intro"><div><p className="eyebrow">COMO FUNCIONA</p><h2>Um lugar para construir constância.</h2></div><ol><li><strong>Defina metas</strong><span>para transformar intenção em alvos acompanháveis.</span></li><li><strong>Conecte hábitos</strong><span>para que a prática diária tenha direção.</span></li><li><strong>Registre leitura e finanças</strong><span>para ver sua evolução completa.</span></li></ol><div className="home-intro-actions"><NavLink className="button" to="/goals">Criar uma meta</NavLink><NavLink className="subtle" to="/finance">Abrir financeiro</NavLink></div></section><section className="metric-row"><Metric label="Sequência atual" value={`${streak} dias`} /><Metric label="Hábitos hoje" value={`${completedToday} / ${habits.length}`} /><Metric label="Metas no alvo" value={`${completedGoals} / ${goals.length}`} /></section><section className="home-grid"><article className="panel"><h2>Hoje</h2>{habits.length === 0 ? <p>Crie seu primeiro hábito para começar.</p> : <div className="home-list">{habits.slice(0, 4).map(habit => <NavLink to="/habits" key={habit.id}><span>{habit.name}</span><small>{logs.some(log => log.habit_id === habit.id && log.date === today() && log.status === 'completed') ? 'Concluído' : 'Pendente'}</small></NavLink>)}</div>}<NavLink className="button" to="/habits">Registrar hábito</NavLink></article><article className="panel"><h2>Metas ativas</h2>{goals.length === 0 ? <p>Defina uma meta mensurável.</p> : <div className="home-list">{goals.slice(0, 4).map(goal => <NavLink to="/goals" key={goal.id}><span>{goal.title}</span><small>{goalProgress(goal, logs)} / {goal.target_value} {goal.unit}</small></NavLink>)}</div>}<NavLink className="button secondary-button" to="/goals">Ver metas</NavLink></article></section></>
-}
-
-function Metric({ label, value }: { label: string; value: string }) { return <article className="metric"><p>{label}</p><strong>{value}</strong></article> }
 function PrivateAccessDenied() { return <main className="centered setup"><h1>Acesso privado</h1><p>Esta instalação do Cavern não está autorizada para esta conta.</p><button onClick={() => void supabase?.auth.signOut()}>Sair</button></main> }
 function Profile({ email }: { email: string }) { return <><header><p className="eyebrow">CAVERN</p><h1>Perfil</h1></header><section className="panel"><p>{email}</p><button onClick={() => void supabase?.auth.signOut()}>Sair</button></section><DeviceSettings /></> }
 function LocalProfile({ onLogout }: { onLogout?: () => void }) {

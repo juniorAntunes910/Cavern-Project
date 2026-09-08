@@ -1,33 +1,79 @@
-import { useState } from 'react'
-import { getLocalCheckIns, saveLocalCheckIn, today } from '../lib/local-store'
+import { useEffect, useState } from 'react'
+import { getLocalCheckIns, saveLocalCheckIn, today, type LocalCheckIn } from '../lib/local-store'
 import { useLocalRevision } from '../lib/use-local-revision'
+import './checkin.css'
 
 const dimensions = [
-  { key: 'disciplina', label: 'Disciplina', helper: 'Como foi sua constância hoje?' },
-  { key: 'foco', label: 'Foco', helper: 'Quanto você conseguiu se concentrar?' },
-  { key: 'energia', label: 'Energia', helper: 'Como esteve sua disposição?' },
+  { key: 'discipline', label: 'Disciplina', helper: 'Quanto você cumpriu o que se propôs a fazer?' },
+  { key: 'focus', label: 'Foco', helper: 'Quanto conseguiu se concentrar?' },
+  { key: 'energy', label: 'Energia', helper: 'Como esteve sua disposição?' },
 ] as const
-
 type Dimension = typeof dimensions[number]['key']
+const scoreLabels = ['Muito baixa', 'Baixa', 'Regular', 'Boa', 'Muito boa']
+const displayDate = (date: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(date + 'T12:00:00'))
 
 export function CheckIn() {
   useLocalRevision()
-  const existing = getLocalCheckIns().find(item => item.date === today())
-  const [scores, setScores] = useState<Record<Dimension, number>>({ disciplina: existing?.discipline ?? 3, foco: existing?.focus ?? 3, energia: existing?.energy ?? 3 })
+  const [date, setDate] = useState(today)
+  useEffect(() => {
+    const refresh = () => setDate(today())
+    const timer = window.setInterval(refresh, 30_000)
+    window.addEventListener('focus', refresh)
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh) }
+  }, [])
+  const items = getLocalCheckIns()
+  return <><header><p className="eyebrow">REFLEXÃO DIÁRIA</p><h1>Como foi seu dia?</h1><p>Uma pausa para reconhecer o que funcionou e escolher um passo para amanhã.</p></header>
+    <DailyForm key={date} date={date} existing={items.find(item => item.date === date)} />
+    <MonthlyCheckInChart items={items} date={date} />
+    <section className="panel checkin-history"><h2>Suas últimas reflexões</h2>{items.length === 0 ? <p>Seu primeiro registro aparecerá aqui.</p> : [...items].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7).map(item => <details key={item.id}><summary>{displayDate(item.date)} <span>{dimensions.map(d => d.label + ': ' + item[d.key]).join(' · ')}</span></summary><p><strong>O que foi bom:</strong> {item.good_today || 'Sem anotação.'}</p><p><strong>Próximo passo:</strong> {item.improve_tomorrow || 'Sem anotação.'}</p></details>)}</section>
+  </>
+}
+
+function DailyForm({ date, existing }: { date: string; existing?: LocalCheckIn }) {
+  const [scores, setScores] = useState<Record<Dimension, number>>({ discipline: existing?.discipline ?? 3, focus: existing?.focus ?? 3, energy: existing?.energy ?? 3 })
   const [good, setGood] = useState(existing?.good_today ?? '')
   const [improve, setImprove] = useState(existing?.improve_tomorrow ?? '')
   const [saved, setSaved] = useState(false)
-
-  function updateScore(key: Dimension, value: number) { setScores(current => ({ ...current, [key]: value })); setSaved(false) }
-  function save() { saveLocalCheckIn({ date: today(), discipline: scores.disciplina, focus: scores.foco, energy: scores.energia, good_today: good, improve_tomorrow: improve }); setSaved(true) }
-
-  return <><header><p className="eyebrow">REFLEXÃO</p><h1>Check-in de hoje</h1><p>Registre seu dia com calma e acompanhe sua evolução ao longo do mês.</p></header><section className="panel form checkin-form"><div className="checkin-form-heading"><div><h2>Como você está hoje?</h2><p>Ajuste cada indicador de 1 a 5.</p></div><span className="checkin-date">{new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date())}</span></div><div className="checkin-scores">{dimensions.map(dimension => <ScoreControl key={dimension.key} label={dimension.label} helper={dimension.helper} value={scores[dimension.key]} onChange={value => updateScore(dimension.key, value)} />)}</div><div className="checkin-notes"><label htmlFor="checkin-good">O que foi bom hoje?<textarea id="checkin-good" placeholder="Registre uma pequena vitória, um momento bom ou algo pelo qual você é grato." rows={4} value={good} onChange={event => { setGood(event.target.value); setSaved(false) }} /></label><label htmlFor="checkin-improve">O que melhorar amanhã?<textarea id="checkin-improve" placeholder="Escreva uma intenção simples para o próximo dia." rows={4} value={improve} onChange={event => { setImprove(event.target.value); setSaved(false) }} /></label></div><div className="checkin-submit-row"><button type="button" onClick={save}>Salvar check-in</button>{saved && <p className="saved-message" role="status">Check-in salvo para hoje.</p>}</div></section><MonthlyCheckInChart /></>
+  const [error, setError] = useState('')
+  function save() {
+    try {
+      saveLocalCheckIn({ date, ...scores, good_today: good.trim(), improve_tomorrow: improve.trim() })
+      setSaved(true); setError('')
+    } catch { setError('Não foi possível salvar. Verifique o espaço disponível e tente novamente.') }
+  }
+  return <section className="panel form checkin-form"><div className="checkin-form-heading"><div><h2>{existing ? 'Seu registro de hoje' : 'Check-in de hoje'}</h2><p>1 = muito baixa · 3 = regular · 5 = muito boa. Você pode atualizar seu registro.</p></div><time className="checkin-date" dateTime={date}>{displayDate(date)}</time></div>
+    <div className="checkin-scores">{dimensions.map(d => <fieldset className="checkin-score" key={d.key}><legend>{d.label}</legend><p>{d.helper}</p><div className="score-options">{scoreLabels.map((label, index) => <label key={label}><input type="radio" name={d.key} value={index + 1} checked={scores[d.key] === index + 1} onChange={() => { setScores(current => ({ ...current, [d.key]: index + 1 })); setSaved(false) }} /><span>{index + 1}<small>{label}</small></span></label>)}</div></fieldset>)}</div>
+    <div className="checkin-notes"><label htmlFor="checkin-good">O que foi bom hoje? <small>Opcional</small><textarea id="checkin-good" rows={3} placeholder="Uma pequena vitória ou algo pelo qual você é grato." value={good} onChange={e => { setGood(e.target.value); setSaved(false) }} /></label><label htmlFor="checkin-improve">Um passo para amanhã <small>Opcional</small><textarea id="checkin-improve" rows={3} placeholder="Uma intenção simples e possível." value={improve} onChange={e => { setImprove(e.target.value); setSaved(false) }} /></label></div>
+    <div className="checkin-submit-row"><button type="button" onClick={save} disabled={saved}>{saved ? 'Salvo' : existing ? 'Atualizar check-in' : 'Salvar check-in'}</button><p role="status">{saved ? 'Seu dia foi registrado.' : error || 'Um registro por dia, sem cobrança de perfeição.'}</p></div>
+  </section>
 }
 
-function ScoreControl({ label, helper, value, onChange }: { label: string; helper: string; value: number; onChange: (value: number) => void }) {
-  const progress = (value - 1) / 4 * 100
-  return <article className="checkin-score"><div className="checkin-score-heading"><div><strong>{label}</strong><span>{helper}</span></div><output aria-label={`${label}: ${value} de 5`}>{value}<small>/5</small></output></div><input className="checkin-range" aria-label={label} aria-valuetext={`${value} de 5`} max="5" min="1" style={{ background: `linear-gradient(to right, var(--purple) 0%, var(--purple) ${progress}%, var(--surface2) ${progress}%, var(--surface2) 100%)` }} type="range" value={value} onChange={event => onChange(Number(event.target.value))} /><div className="checkin-range-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></article>
+function MonthlyCheckInChart({ items, date }: { items: LocalCheckIn[]; date: string }) {
+  const [month, setMonth] = useState(date.slice(0, 7))
+  const [metric, setMetric] = useState<Dimension>('discipline')
+  const [year, monthNumber] = month.split('-').map(Number)
+  const days = new Date(year, monthNumber, 0).getDate()
+  const byDate = new Map(items.filter(item => item.date.startsWith(month) && item.date <= date).map(item => [item.date, item]))
+  const records = [...byDate.values()]
+  const label = dimensions.find(d => d.key === metric)!.label
+  const x = (day: number) => 36 + (day - 1) * 584 / (days - 1)
+  const y = (value: number) => 190 - (value - 1) * 40
+  // Missing days break the path; they are never plotted as zero.
+  let connected = false
+  const path = Array.from({ length: days }, (_, i) => {
+    const item = byDate.get(month + '-' + String(i + 1).padStart(2, '0'))
+    if (!item) { connected = false; return '' }
+    const segment = (connected ? 'L' : 'M') + x(i + 1) + ',' + y(item[metric])
+    connected = true
+    return segment
+  }).join(' ')
+  function moveMonth(offset: number) {
+    const next = new Date(year, monthNumber - 1 + offset, 1)
+    setMonth(next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0'))
+  }
+  return <section className="panel checkin-month"><div className="chart-title"><div><p className="eyebrow">EVOLUÇÃO</p><h2>Observe seu ritmo</h2></div><div className="checkin-month-nav"><button className="subtle" aria-label="Mês anterior" onClick={() => moveMonth(-1)}>‹</button><span>{new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(year, monthNumber - 1, 1))}</span><button className="subtle" aria-label="Próximo mês" disabled={month >= date.slice(0, 7)} onClick={() => moveMonth(1)}>›</button></div></div>
+    <p>{records.length} dia(s) registrado(s). Dias sem check-in ficam em branco.</p>
+    <div className="checkin-metrics">{dimensions.map(d => <button key={d.key} className="subtle" aria-pressed={metric === d.key} onClick={() => setMetric(d.key)}>{d.label}<strong>{records.length ? (records.reduce((sum, item) => sum + item[d.key], 0) / records.length).toFixed(1) + ' / 5' : '—'}</strong><small>Média dos registros</small></button>)}</div>
+    {records.length === 0 ? <p className="empty">Nenhum check-in neste mês. Salve seu dia para começar a acompanhar a evolução.</p> : <><div className="checkin-chart-scroll" tabIndex={0} role="region" aria-label={'Gráfico de ' + label}><svg role="img" aria-label={label + ' por dia, escala de 1 a 5. Consulte os valores na tabela abaixo.'} viewBox="0 0 640 230">{[1, 2, 3, 4, 5].map(value => <g key={value}><line className="chart-axis" x1="36" x2="620" y1={y(value)} y2={y(value)} /><text x="18" y={y(value) + 4} textAnchor="middle">{value}</text></g>)}{[1, 5, 10, 15, 20, 25, days].map(day => <text key={day} x={x(day)} y="216" textAnchor="middle">{day}</text>)}<path d={path} fill="none" stroke="var(--purple)" strokeWidth="2.5" />{records.map(item => <circle key={item.id} cx={x(Number(item.date.slice(-2)))} cy={y(item[metric])} r="4" fill="var(--purple)"><title>{displayDate(item.date)}: {item[metric]} / 5</title></circle>)}</svg></div><details className="checkin-table"><summary>Ver notas por dia</summary><table><thead><tr><th>Dia</th>{dimensions.map(d => <th key={d.key}>{d.label}</th>)}</tr></thead><tbody>{records.sort((a, b) => a.date.localeCompare(b.date)).map(item => <tr key={item.id}><th scope="row">{displayDate(item.date)}</th>{dimensions.map(d => <td key={d.key}>{item[d.key]}</td>)}</tr>)}</tbody></table></details></>}
+  </section>
 }
-
-function MonthlyCheckInChart() { const items = getLocalCheckIns(); const now = new Date(); const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(); const values = Array.from({ length: days }, (_, index) => { const date = localDate(now.getFullYear(), now.getMonth(), index + 1); const item = items.find(checkin => checkin.date === date); return { date, value: item ? (item.discipline + item.focus + item.energy) / 3 : 0 } }); const max = 5; return <section className="panel checkin-month"><div className="chart-title"><div><p className="eyebrow">EVOLUÇÃO</p><h2>Seu mês em um gráfico</h2></div><span>média diária dos check-ins</span></div><svg role="img" aria-label="Evolução mensal das notas de disciplina, foco e energia" viewBox="0 0 700 220" preserveAspectRatio="none"><line x1="0" x2="700" y1="180" y2="180" className="chart-axis" />{values.map((item, index) => { const height = item.value / max * 145; const x = 8 + index * (684 / Math.max(1, days - 1)); return <g key={item.date}><circle className={item.value ? 'checkin-point' : 'checkin-empty'} cx={x} cy={180 - height} r={item.value ? 4 : 2} /><title>{item.date}: {item.value ? item.value.toFixed(1) : 'sem check-in'}</title></g> })}<polyline className="checkin-line" points={values.map((item, index) => `${8 + index * (684 / Math.max(1, days - 1))},${180 - (item.value || 0) / max * 145}`).join(' ')} /></svg><div className="checkin-scale"><span>1</span><span>3</span><span>5</span></div></section> }
-function localDate(year: number, month: number, day: number) { return new Date(year, month, day, 12).toLocaleDateString('en-CA') }

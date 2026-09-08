@@ -21,7 +21,7 @@ window.addEventListener('appinstalled', () => {
 })
 
 export function isAppInstalled() {
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
+  return Capacitor.isNativePlatform() || window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 }
 
 export function canInstallApp() {
@@ -48,3 +48,4 @@ export async function registerAppServiceWorker() {
     return null
   }
 }
+import { Capacitor } from '@capacitor/core'

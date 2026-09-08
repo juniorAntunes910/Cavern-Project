@@ -1,4 +1,4 @@
-const cacheName = 'cavern-shell-v3'
+const cacheName = 'cavern-shell-v4'
 const databaseName = 'cavern-app'
 const storeName = 'records'
 const habitsKey = 'cavern.local.habits.v1'
@@ -31,7 +31,7 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  if (['style', 'script', 'image', 'font'].includes(request.destination) && !url.pathname.startsWith('/src/')) {
+  if (['style', 'script', 'worker', 'image', 'font'].includes(request.destination) && !url.pathname.startsWith('/src/')) {
     event.respondWith(caches.match(request).then(cached => cached ?? fetch(request).then(response => {
       const copy = response.clone()
       void caches.open(cacheName).then(cache => cache.put(request, copy))
@@ -69,7 +69,10 @@ async function precacheAppShell() {
     .map(match => new URL(match[1], self.location.origin))
     .filter(url => url.origin === self.location.origin && !url.pathname.startsWith('/src/'))
     .map(url => url.pathname)
-  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', '/app-icon-192.png', '/app-icon-512.png', ...documentAssets])])
+  // Include lazy chunks and the PDF worker so first-time reading works offline.
+  const assetsResponse = await fetch('/offline-assets.json')
+  const buildAssets = assetsResponse.ok && assetsResponse.headers.get('content-type')?.includes('json') ? await assetsResponse.json() : []
+  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', '/app-icon-192.png', '/app-icon-512.png', ...documentAssets, ...buildAssets])])
 }
 
 function openDatabase() {

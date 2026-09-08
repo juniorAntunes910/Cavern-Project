@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "android:sync": "npm run build && cap sync android",
-    "apk:debug": "npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "apk:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "desktop:package": "npm run build && electron-builder --win nsis",
     "desktop:portable": "npm run build && electron-builder --win portable"
   },

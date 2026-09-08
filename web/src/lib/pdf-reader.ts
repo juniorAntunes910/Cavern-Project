@@ -1,12 +1,12 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 // Keep the worker URL in the Vite bundle. This is important in the packaged
 // Electron app, where resolving a worker from node_modules is not possible.
-GlobalWorkerOptions.workerSrc = workerUrl
 
 export async function openPdf(file: Blob): Promise<PDFDocumentProxy> {
+  const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
+  GlobalWorkerOptions.workerSrc = workerUrl
   // PDF.js transfers this buffer to its worker. Always create a fresh buffer
   // for a new attempt instead of retaining a detached TypedArray.
   const data = new Uint8Array(await file.arrayBuffer())
