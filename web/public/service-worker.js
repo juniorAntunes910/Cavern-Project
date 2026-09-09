@@ -1,4 +1,4 @@
-const cacheName = 'cavern-shell-v4'
+const cacheName = 'cavern-shell-v6'
 const databaseName = 'cavern-app'
 const storeName = 'records'
 const habitsKey = 'cavern.local.habits.v1'

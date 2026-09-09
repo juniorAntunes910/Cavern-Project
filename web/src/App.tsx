@@ -6,6 +6,7 @@ import { Goals } from './features/Goals'
 import { Habits } from './features/Habits'
 import { Progress } from './features/Progress'
 import { CheckIn } from './features/CheckIn'
+import { Gym } from './features/Gym'
 import { Books } from './features/Books'
 import { Reader } from './features/Reader'
 import { Finance } from './features/Finance'
@@ -19,7 +20,7 @@ import './theme-overrides.css'
 import './reader.css'
 
 type Session = Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']
-const nav = [['/', 'Início'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
+const nav = [['/', 'Início'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/gym', 'Academia'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
 
 export default function App() {
   const [session, setSession] = useState<Session>(null)
@@ -45,7 +46,7 @@ function LocalApp() {
 
 function LocalLogin({ onSuccess }: { onSuccess: () => void }) {
   const [user, setUser] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState('')
-  function submit(event: FormEvent) { event.preventDefault(); const credentials: Record<string, string> = { junior_ga_souza: 'senha123', denis_dev: 'denis_d', deretti: 'deretti-lindo', matheus_oliveira: 'corithias2026' }; if (credentials[user] === password) { localStorage.setItem('cavern.local.authenticated', 'true'); localStorage.setItem('cavern.local.user', user); onSuccess() } else setError('Usuário ou senha incorretos.') }
+  function submit(event: FormEvent) { event.preventDefault(); const credentials: Record<string, string> = { junior_ga_souza: 'senha123', denis_dev: 'denis_d', deretti: 'deretti-lindo', matheus_oliveira: 'corithias2026' }; const normalizedUser = user.trim().toLowerCase(); const normalizedPassword = password.trim(); if (credentials[normalizedUser] === normalizedPassword) { localStorage.setItem('cavern.local.authenticated', 'true'); localStorage.setItem('cavern.local.user', normalizedUser); onSuccess() } else setError('Usuário ou senha incorretos.') }
   return <main className="auth">
     <form className="auth-card" onSubmit={submit}>
       <AuthBrand />
@@ -82,7 +83,6 @@ function Shell({ profile }: { profile: ReactNode }) {
     <div className="mobile-topbar">
       <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu principal" aria-expanded={menuOpen} aria-controls="main-sidebar" onClick={() => setMenuOpen(true)}>
         <span className="mobile-menu-icon" aria-hidden="true"><i /><i /><i /></span>
-        <span>Menu</span>
       </button>
       <div className="mobile-brand">CAVERN</div>
       <StreakBadge compact />
@@ -95,7 +95,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       <ThemeToggle />
     </aside>
     <main className="content"><InstallBanner /><Routes>
-    <Route path="/" element={<Progress />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="/" element={<Progress />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/gym" element={<Gym />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
   </Routes></main></div>
 }
 

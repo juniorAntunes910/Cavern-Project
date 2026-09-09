@@ -104,7 +104,7 @@ button,.button{transition:filter .16s ease,transform .16s ease}button:active,.bu
 @media(max-width:700px){
   .mobile-topbar{background:color-mix(in srgb,var(--sidebar) 96%,transparent);display:grid;grid-template-columns:1fr auto 1fr;height:auto;min-height:68px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;position:sticky;top:0}
   .mobile-brand{align-self:center;color:var(--text);font-size:.76rem;letter-spacing:.2em;line-height:44px;text-align:center}
-  .mobile-menu-trigger{align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--text);display:inline-flex;gap:9px;justify-self:start;min-height:44px;padding:0 12px}
+  .mobile-menu-trigger{align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--text);display:inline-flex;justify-content:center;justify-self:start;min-height:44px;padding:0;width:44px}
   .mobile-menu-trigger:hover{background:var(--purpleSoft);border-color:var(--purple);color:var(--purple)}
   .mobile-menu-trigger:active{transform:scale(.98)}
   .mobile-menu-icon{display:grid;gap:4px;width:18px}
@@ -126,3 +126,4 @@ button,.button{transition:filter .16s ease,transform .16s ease}button:active,.bu
   .content{padding:28px 20px calc(env(safe-area-inset-bottom) + 40px)}
   .reader{margin:0 -20px}
 }
+.gym-summary{grid-template-columns:repeat(3,1fr)}.workout-card{align-items:start;display:grid;gap:14px;grid-template-columns:1fr auto}.workout-card h2{margin:4px 0}.workout-card p{line-height:1.5;margin:0}.workout-card .subtle{align-self:center}.workout-meta{color:var(--purple);font-size:.82rem;font-weight:700}@media(max-width:700px){.gym-summary{grid-template-columns:1fr}.workout-card{grid-template-columns:1fr}.workout-card .subtle{width:100%}}
