@@ -71,23 +71,25 @@ function Shell({ profile }: { profile: ReactNode }) {
   useEffect(() => startHabitReminderChecks(), [])
   useEffect(() => {
     if (!menuOpen) return
+    const previousOverflow = document.body.style.overflow
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false) }
+    document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', closeOnEscape) }
   }, [menuOpen])
 
   return <div className="app-shell">
     <div className="mobile-topbar">
-      <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu" aria-expanded={menuOpen} aria-controls="main-sidebar" onClick={() => setMenuOpen(true)}>
-        <span aria-hidden="true"><i /><i /><i /></span>
-        Menu
+      <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu principal" aria-expanded={menuOpen} aria-controls="main-sidebar" onClick={() => setMenuOpen(true)}>
+        <span className="mobile-menu-icon" aria-hidden="true"><i /><i /><i /></span>
+        <span>Menu</span>
       </button>
       <div className="mobile-brand">CAVERN</div>
       <StreakBadge compact />
     </div>
     <button className={`mobile-menu-backdrop${menuOpen ? ' is-open' : ''}`} type="button" aria-label="Fechar menu" tabIndex={menuOpen ? 0 : -1} onClick={() => setMenuOpen(false)} />
-    <aside id="main-sidebar" className={`sidebar${menuOpen ? ' is-open' : ''}`} aria-label="Menu principal">
-      <div className="sidebar-heading"><div className="brand">CAVERN</div><button className="mobile-menu-close" type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}>×</button></div>
+    <aside id="main-sidebar" className={`sidebar${menuOpen ? ' is-open' : ''}`} aria-label="Menu principal" aria-modal={menuOpen || undefined}>
+      <div className="sidebar-heading"><div className="brand">CAVERN</div><button className="mobile-menu-close" type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><span aria-hidden="true">×</span></button></div>
       <nav>{nav.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}</nav>
       <StreakBadge />
       <ThemeToggle />

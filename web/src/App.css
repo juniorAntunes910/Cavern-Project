@@ -99,3 +99,30 @@ button,.button{transition:filter .16s ease,transform .16s ease}button:active,.bu
 .habits-stack{gap:16px}.habit-card{align-items:stretch;display:grid;gap:18px;padding:22px}.habit-card-heading{align-items:start;display:flex;gap:20px;justify-content:space-between}.habit-card-heading h2{margin:4px 0 7px}.habit-card-heading p:last-child{line-height:1.5;margin:0}.habit-streak{background:var(--purpleSoft);border:1px solid color-mix(in srgb,var(--purple) 45%,var(--line));border-radius:12px;flex:none;min-width:92px;padding:9px 10px;text-align:center}.habit-streak strong{line-height:1}.habit-streak span{color:var(--muted);font-size:.71rem;margin-top:5px}.habit-edit{grid-template-columns:1.5fr 1fr}.habit-actions{border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;padding-top:16px}.habit-actions button{flex:0 0 auto;min-height:42px}.habit-actions button:first-child{margin-right:auto}
 
 @media(max-width:700px){.log-date{align-items:stretch;flex-direction:column;gap:12px;margin:0 0 24px;width:100%}.log-date input{margin-left:0;width:100%}.habit-create-form{position:static}.habit-card{padding:18px}.habit-card-heading{gap:14px}.habit-streak{min-width:78px}.habit-edit{grid-template-columns:1fr}.habit-actions{display:grid;grid-template-columns:1fr 1fr}.habit-actions button,.habit-actions button:first-child{margin:0;width:100%}.habit-actions button:first-child{grid-column:1/-1}}
+
+/* Mobile navigation */
+@media(max-width:700px){
+  .mobile-topbar{background:color-mix(in srgb,var(--sidebar) 96%,transparent);display:grid;grid-template-columns:1fr auto 1fr;height:auto;min-height:68px;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;position:sticky;top:0}
+  .mobile-brand{align-self:center;color:var(--text);font-size:.76rem;letter-spacing:.2em;line-height:44px;text-align:center}
+  .mobile-menu-trigger{align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--text);display:inline-flex;gap:9px;justify-self:start;min-height:44px;padding:0 12px}
+  .mobile-menu-trigger:hover{background:var(--purpleSoft);border-color:var(--purple);color:var(--purple)}
+  .mobile-menu-trigger:active{transform:scale(.98)}
+  .mobile-menu-icon{display:grid;gap:4px;width:18px}
+  .mobile-menu-icon i{background:currentColor;border-radius:999px;display:block;height:2px;width:18px}
+  .mobile-topbar .streak-badge{align-items:center;background:transparent;border:0;color:var(--text);gap:5px;justify-self:end;margin:0;min-height:44px;padding:0 3px}
+  .mobile-topbar .streak-badge>span{font-size:1.1rem}.mobile-topbar .streak-badge strong{font-size:1rem}
+  .mobile-menu-backdrop{background:rgba(3,5,4,.66);backdrop-filter:blur(3px);z-index:20}
+  aside.sidebar{background:var(--sidebar);box-shadow:18px 0 48px rgba(0,0,0,.42);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-110%);width:min(86vw,340px);z-index:21}
+  .sidebar-heading{align-items:center;border-bottom:1px solid var(--line);padding:0 2px 16px}
+  .sidebar .brand{color:var(--text);font-size:.82rem;margin:0}
+  .mobile-menu-close{background:var(--surface2);border:1px solid var(--line);border-radius:12px;color:var(--text);height:44px;width:44px}
+  .mobile-menu-close:hover{background:var(--purpleSoft);border-color:var(--purple);color:var(--purple)}
+  .sidebar nav{gap:6px;margin:18px 0 0}
+  .sidebar nav a,.sidebar nav a:nth-child(2){align-items:center;border:1px solid transparent;border-radius:10px;color:var(--muted);display:flex;font-size:.96rem;min-height:48px;padding:0 13px;text-align:left}
+  .sidebar nav a:hover{background:var(--surface2);color:var(--text)}
+  .sidebar nav a.active{background:var(--purpleSoft);border-color:color-mix(in srgb,var(--purple) 45%,var(--line));color:var(--purple)}
+  .sidebar .streak-badge{align-items:center;background:var(--surface2);border:1px solid var(--line);display:flex;margin:20px 0 0;min-height:50px;padding:10px 12px}
+  .sidebar .theme-toggle{margin:12px 0 0;min-height:46px;width:100%}
+  .content{padding:28px 20px calc(env(safe-area-inset-bottom) + 40px)}
+  .reader{margin:0 -20px}
+}
