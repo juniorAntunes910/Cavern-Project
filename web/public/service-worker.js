@@ -72,7 +72,7 @@ async function precacheAppShell() {
   // Include lazy chunks and the PDF worker so first-time reading works offline.
   const assetsResponse = await fetch('/offline-assets.json')
   const buildAssets = assetsResponse.ok && assetsResponse.headers.get('content-type')?.includes('json') ? await assetsResponse.json() : []
-  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', '/app-icon-192.png', '/app-icon-512.png', ...documentAssets, ...buildAssets])])
+  await cache.addAll([...new Set(['/manifest.webmanifest', '/app-icon.svg', '/app-icon-maskable.svg', '/app-icon-180.png', '/app-icon-192.png', '/app-icon-512.png', ...documentAssets, ...buildAssets])])
 }
 
 function openDatabase() {
