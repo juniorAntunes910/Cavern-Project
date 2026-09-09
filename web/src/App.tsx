@@ -45,7 +45,7 @@ function LocalApp() {
 
 function LocalLogin({ onSuccess }: { onSuccess: () => void }) {
   const [user, setUser] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState('')
-  function submit(event: FormEvent) { event.preventDefault(); const credentials: Record<string, string> = { junior_ga_souza: 'senha123', denis_dev: 'denis_d', deretti: 'deretti-lindo' }; if (credentials[user] === password) { localStorage.setItem('cavern.local.authenticated', 'true'); localStorage.setItem('cavern.local.user', user); onSuccess() } else setError('Usuário ou senha incorretos.') }
+  function submit(event: FormEvent) { event.preventDefault(); const credentials: Record<string, string> = { junior_ga_souza: 'senha123', denis_dev: 'denis_d', deretti: 'deretti-lindo', matheus_oliveira: 'corithias2026' }; if (credentials[user] === password) { localStorage.setItem('cavern.local.authenticated', 'true'); localStorage.setItem('cavern.local.user', user); onSuccess() } else setError('Usuário ou senha incorretos.') }
   return <main className="auth">
     <form className="auth-card" onSubmit={submit}>
       <AuthBrand />
