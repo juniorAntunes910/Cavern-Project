@@ -1,5 +1,6 @@
 import { deleteDatabaseValue, persistDatabaseValue } from './app-db'
 import { REWARDS, type RewardType } from '../features/gamification/rewards/reward-config'
+import { createId } from './id'
 
 export type GoalMetric = 'habit_days' | 'pages_read' | 'reading_minutes' | 'study_minutes' | 'workouts' | 'custom'
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly' | 'total'
@@ -33,7 +34,7 @@ const write = <T>(key: string, value: T[]) => {
   persistDatabaseValue(key, value)
   window.dispatchEvent(new Event('cavern:data-changed'))
 }
-const id = () => crypto.randomUUID()
+const id = createId
 
 export function getLocalGoals() { return read<LocalGoal & { cavern_id?: string | null }>(keys.goals).map(({ cavern_id: _cavernId, ...goal }) => ({ ...goal, metric: goal.metric ?? 'custom', manual_progress: goal.manual_progress ?? 0, start_date: goal.start_date ?? today(), end_date: goal.end_date ?? today() })) }
 export function addLocalGoal(goal: Omit<LocalGoal, 'id' | 'status' | 'manual_progress'>) { const created = { ...goal, id: id(), status: 'active' as const, manual_progress: 0 }; const next = [created, ...getLocalGoals()]; write(keys.goals, next); getLocalHabits().filter(habit => habitMatchesGoal(habit, created)).forEach(habit => setHabitGoalLinks(habit.id, [...new Set([...getHabitGoalIds(habit.id), created.id])])); return next }
