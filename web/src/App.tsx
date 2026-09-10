@@ -10,6 +10,11 @@ import { Gym } from './features/Gym'
 import { Books } from './features/Books'
 import { Reader } from './features/Reader'
 import { Finance } from './features/Finance'
+import { ChallengesPage } from './features/challenges/pages/ChallengesPage'
+import { Focus } from './features/focus/Focus'
+import { AchievementsPage } from './features/achievements/Achievements'
+import { Shop } from './features/shop/Shop'
+import { grantReward } from './features/gamification/rewards/reward.service'
 import { InstallBanner, InstallControl } from './components/AppInstall'
 import { NotificationSettings } from './components/NotificationSettings'
 import { getLocalHabitLogs, overallStreak } from './lib/local-store'
@@ -20,7 +25,7 @@ import './theme-overrides.css'
 import './reader.css'
 
 type Session = Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']
-const nav = [['/', 'Início'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/gym', 'Academia'], ['/finance', 'Financeiro'], ['/books', 'Livros'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
+const nav = [['/', 'Início'], ['/cavern', 'Caverna'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/focus', 'Foco'], ['/gym', 'Academia'], ['/books', 'Livros'], ['/achievements', 'Conquistas'], ['/shop', 'Loja'], ['/finance', 'Financeiro'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
 
 export default function App() {
   const [session, setSession] = useState<Session>(null)
@@ -71,6 +76,16 @@ function Shell({ profile }: { profile: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   useEffect(() => startHabitReminderChecks(), [])
   useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const grantTestEmbers = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.key !== '9') return
+      event.preventDefault()
+      grantReward({ sourceType: 'debug', sourceId: crypto.randomUUID(), xp: 0, embers: 5000, title: 'Brasas de teste' })
+    }
+    window.addEventListener('keydown', grantTestEmbers)
+    return () => window.removeEventListener('keydown', grantTestEmbers)
+  }, [])
+  useEffect(() => {
     if (!menuOpen) return
     const previousOverflow = document.body.style.overflow
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false) }
@@ -95,7 +110,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       <ThemeToggle />
     </aside>
     <main className="content"><InstallBanner /><Routes>
-    <Route path="/" element={<Progress />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/gym" element={<Gym />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="/" element={<Progress />} /><Route path="/cavern" element={<ChallengesPage />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/focus" element={<Focus />} /><Route path="/gym" element={<Gym />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/shop" element={<Shop />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
   </Routes></main></div>
 }
 

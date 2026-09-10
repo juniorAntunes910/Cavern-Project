@@ -1,44 +1,50 @@
 import { NavLink } from 'react-router-dom'
 import './progress.css'
-import { getLocalCheckIns, getLocalHabitLogs, getLocalReadingSessions, overallStreak, today } from '../lib/local-store'
+import { getLocalCheckIns, getLocalCustomization, getLocalHabitLogs, getLocalReadingSessions, overallStreak, today } from '../lib/local-store'
 import { useLocalRevision } from '../lib/use-local-revision'
+import { getChallenges } from './challenges/services/challenge.repository'
+import { calculateChallengeProgress, defaultChallengeScoreCalculator } from './challenges/services/challenge-progress.service'
 
 const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
 export function Progress() {
   useLocalRevision()
-  const logs = getLocalHabitLogs(); const sessions = getLocalReadingSessions(); const checkins = getLocalCheckIns()
+  const logs = getLocalHabitLogs(); const sessions = getLocalReadingSessions(); const checkins = getLocalCheckIns(); const challenge = getChallenges().find(item => item.status === 'ACTIVE')
   const now = new Date(); const current = monthRange(now.getFullYear(), now.getMonth()); const previous = monthRange(now.getFullYear(), now.getMonth() - 1)
   const streak = overallStreak(logs); const days = recentDays(14); const active = new Set(logs.filter(log => log.status === 'completed').map(log => log.date))
   const counts = new Map<string, number>()
   for (const log of logs) if (log.status === 'completed') counts.set(log.date, (counts.get(log.date) ?? 0) + 1)
   const chart = days.map(date => ({ date, amount: counts.get(date) ?? 0 }))
   const metrics = [{ label: 'Dias ativos', current: uniqueCompleted(logs, current), previous: uniqueCompleted(logs, previous) }, { label: 'Páginas lidas', current: pagesIn(sessions, current), previous: pagesIn(sessions, previous) }, { label: 'Check-ins', current: countIn(checkins, current), previous: countIn(checkins, previous) }]
-  return <><header><p className="eyebrow">VISÃO GERAL</p><h1>Seu progresso</h1><p>Consistência se constrói dia após dia.</p></header><FireJourney streak={streak} /><div className="progress-actions"><NavLink className="button" to="/habits">Registrar hábito</NavLink><NavLink className="button subtle" to="/books">Continuar leitura</NavLink><NavLink className="button subtle" to="/checkins">Fazer check-in</NavLink></div><section className="visual-summary"><article className="streak-hero"><span>Sequência atual</span><strong>{streak}</strong><small>dias consecutivos</small></article><ActivityChart values={chart} /></section><MonthlyComparison metrics={metrics} /><section className="calendar-section"><div><p className="eyebrow">CALENDÁRIO</p><h2>{monthLabel()}</h2></div><Calendar activeDates={active} /></section></>
+  return <><header><p className="eyebrow">VISÃO GERAL</p><h1>Seu progresso</h1><p>Consistência se constrói dia após dia.</p></header>{challenge && <CurrentCavern challenge={challenge} />}<FireJourney streak={streak} /><div className="progress-actions"><NavLink className="button" to="/cavern">{challenge ? 'Continuar Caverna' : 'Criar Caverna'}</NavLink><NavLink className="button subtle" to="/focus">Deep Work</NavLink><NavLink className="button subtle" to="/checkins">Fazer check-in</NavLink></div><section className="visual-summary"><article className="streak-hero"><span>Sequência atual</span><strong>{streak}</strong><small>dias consecutivos</small></article><ActivityChart values={chart} /></section><MonthlyComparison metrics={metrics} /><section className="calendar-section"><div><p className="eyebrow">CALENDÁRIO</p><h2>{monthLabel()}</h2></div><Calendar activeDates={active} /></section></>
 }
 
+function CurrentCavern({ challenge }: { challenge: ReturnType<typeof getChallenges>[number] }) { const progress = calculateChallengeProgress(challenge); const score = defaultChallengeScoreCalculator.calculate(challenge, progress); return <section className="panel current-cavern-home"><div><p className="eyebrow">CAVERNA ATUAL</p><h2>{challenge.name}</h2><p>Dia {progress.currentDay} / {challenge.durationDays} · Hoje: {progress.today.filter(rule => rule.completed).length} / {progress.today.length} regras</p><div className="progress-track"><i style={{ width: `${progress.overall}%` }} /></div></div><div><strong>{progress.overall}%</strong><small>Cavern Score {score}</small><NavLink className="button" to="/cavern">Continuar</NavLink></div></section> }
+
 function FireJourney({ streak }: { streak: number }) {
+  const loadout = getLocalCustomization()
   const thresholds = [0, 1, 7, 14, 28]
   const labels = ['Sua próxima chama', 'Primeira chama', 'Brasa firme', 'Fogueira forte', 'Chama lendária']
   const level = thresholds.reduce((current, threshold, index) => streak >= threshold ? index : current, 0)
   const remaining = (thresholds[level + 1] ?? streak) - streak
   const message = level === 0 ? 'Conclua um hábito hoje para acender a fogueira. Cada recomeço conta.' : level === 4 ? '28 dias ou mais de constância. Continue cuidando da sua chama.' : 'Mais ' + remaining + (remaining === 1 ? ' dia para ' : ' dias para ') + labels[level + 1].toLowerCase() + '.'
-  return <section className={'fire-journey level-' + level}><div className="fire-copy"><p className="eyebrow">SUA FOGUEIRA</p><h2>{labels[level]}</h2><p>{message}</p><div className="fire-milestones">{thresholds.slice(1).map(value => <span className={streak >= value ? 'reached' : ''} key={value}>{value}d</span>)}</div></div><div className="camp-scene"><StreakScene level={level} /></div><strong className="fire-count">{streak}<small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small></strong></section>
+  return <section className={'fire-journey level-' + level}><div className="fire-copy"><p className="eyebrow">SUA FOGUEIRA</p><h2>{labels[level]}</h2><p>{message}</p><div className="fire-milestones">{thresholds.slice(1).map(value => <span className={streak >= value ? 'reached' : ''} key={value}>{value}d</span>)}</div></div><div className="camp-scene"><StreakScene level={level} loadout={loadout} /></div><strong className="fire-count">{streak}<small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small></strong></section>
 }
 
-function StreakScene({ level }: { level: number }) {
+function StreakScene({ level, loadout }: { level: number; loadout: ReturnType<typeof getLocalCustomization> }) {
   const scale = [0, .6, .8, 1, 1.15][level]
+  const fire = ({ 'fire-blue': ['#3b9dff', '#b5e7ff'], 'fire-purple': ['#a16cff', '#ead9ff'] } as Record<string, [string, string]>)[loadout.fire_skin_id] ?? ['#f58d38', '#ffdc79']
   return <svg className="streak-scene" viewBox="0 0 300 200" role="img" aria-label={level === 0 ? 'Mascote Cavern pronto para acender a fogueira' : 'Mascote Cavern ao lado da sua fogueira acesa'}>
     <ellipse cx="150" cy="179" rx="130" ry="10" fill="#000" opacity=".12" />
-    <path d="M39 159Q20 119 48 76Q62 48 89 39Q117 49 136 81Q159 121 135 159Z" fill="#9c7de8" stroke="#69529f" strokeWidth="3" />
+    {loadout.mascot_id === 'bat' ? <g transform="translate(37 61)"><path d="M52 45Q19 8 0 35Q13 44 6 63Q29 61 43 77Q55 61 78 63Q71 44 85 35Q66 8 33 45Z" fill="#6b558a" /><circle cx="43" cy="45" r="23" fill="#27212e" />{loadout.head_item_id === 'cap' && <><path d="M20 29Q43 4 66 29Z" fill="#2d7ec7" /><path d="M45 27Q68 27 77 35Q57 33 43 31Z" fill="#23649e" /></>}<circle cx="35" cy="42" r="3" fill="#ffcf73" /><circle cx="51" cy="42" r="3" fill="#ffcf73" />{loadout.accessory_item_id === 'glasses' && <><circle cx="35" cy="42" r="7" fill="none" stroke="#7fc7e8" strokeWidth="2" /><circle cx="51" cy="42" r="7" fill="none" stroke="#7fc7e8" strokeWidth="2" /><path d="M42 42H44" stroke="#7fc7e8" strokeWidth="2" /></>}</g> : <g><path d="M39 159Q20 119 48 76Q62 48 89 39Q117 49 136 81Q159 121 135 159Z" fill="#9c7de8" stroke="#69529f" strokeWidth="3" />
     <path d="M52 133V107Q52 67 89 62Q127 67 127 107V133Q92 153 52 133Z" fill="#20202c" />
     <ellipse cx="75" cy="106" rx="6" ry="8" fill="#ffcf73" /><ellipse cx="106" cy="106" rx="6" ry="8" fill="#ffcf73" />
     <path d={level === 0 ? 'M84 127H97' : 'M83 122Q90 132 98 122'} fill="none" stroke="#ffcf73" strokeWidth="3" strokeLinecap="round" />
     <path d="M48 139Q30 147 36 162M132 139Q148 141 155 128" fill="none" stroke="#9c7de8" strokeWidth="14" strokeLinecap="round" />
-    <ellipse cx="67" cy="172" rx="22" ry="10" fill="#69529f" /><ellipse cx="116" cy="172" rx="22" ry="10" fill="#69529f" />
+    <ellipse cx="67" cy="172" rx="22" ry="10" fill="#69529f" /><ellipse cx="116" cy="172" rx="22" ry="10" fill="#69529f" />{loadout.head_item_id === 'cap' && <><path d="M53 83Q89 48 125 83Z" fill="#2d7ec7" /><path d="M88 79Q119 77 137 91Q108 88 84 86Z" fill="#23649e" /></>}{loadout.head_item_id === 'miner-helmet' && <path d="M52 89Q89 48 126 89Z" fill="#f3b84a" stroke="#9f7121" strokeWidth="3" />}{loadout.accessory_item_id === 'glasses' && <><circle cx="75" cy="106" r="11" fill="none" stroke="#7fc7e8" strokeWidth="3" /><circle cx="106" cy="106" r="11" fill="none" stroke="#7fc7e8" strokeWidth="3" /><path d="M86 106H95" stroke="#7fc7e8" strokeWidth="3" /></>}</g>}
     {level > 0 && <ellipse cx="225" cy="165" rx="43" ry="17" fill="#ffb24a" opacity=".16" />}
     <path d="M185 169L263 182M190 181L259 165" stroke="#88583b" strokeWidth="12" strokeLinecap="round" />
-    {level > 0 ? <g className="scene-fire" transform={'translate(223 163) scale(' + scale + ')'}><path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="#f58d38" /><path d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#ffdc79" /></g> : <path d="M221 144Q209 130 223 118M231 117Q242 101 231 91" stroke="#96949e" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".6" />}
+    {level > 0 ? <g className="scene-fire" transform={'translate(223 163) scale(' + scale + ')'}><path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill={fire[0]} /><path d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill={fire[1]} /></g> : <path d="M221 144Q209 130 223 118M231 117Q242 101 231 91" stroke="#96949e" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".6" />}
   </svg>
 }
 

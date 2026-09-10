@@ -1,0 +1,3 @@
+import { getLocalRewardTransactions, getLocalXpEntries, grantLocalReward } from '../../../lib/local-store'
+export function getBalance() { const transactions = getLocalRewardTransactions(); return { totalXp: getLocalXpEntries().reduce((sum, item) => sum + item.points, 0) + transactions.reduce((sum, item) => sum + item.xp, 0), embers: transactions.reduce((sum, item) => sum + item.embers, 0) } }
+export function grantReward(input: { sourceType: string; sourceId: string; xp: number; embers: number; title: string }) { return grantLocalReward(input.sourceType, input.sourceId, input.xp, input.embers, input.title) }

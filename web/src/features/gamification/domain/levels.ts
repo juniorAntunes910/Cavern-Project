@@ -1,0 +1,3 @@
+export type CavernLevel = { minLevel: number; title: string }
+export const cavernLevels: CavernLevel[] = [{ minLevel: 1, title: 'Explorador' }, { minLevel: 5, title: 'Habitante' }, { minLevel: 10, title: 'Disciplinado' }, { minLevel: 20, title: 'Inabalável' }, { minLevel: 30, title: 'Mestre da Caverna' }]
+export function levelFromXp(xp: number) { const level = Math.max(1, Math.floor(Math.sqrt(xp / 100)) + 1); const currentStart = (level - 1) ** 2 * 100; const nextStart = level ** 2 * 100; return { level, title: [...cavernLevels].reverse().find(item => level >= item.minLevel)?.title ?? 'Explorador', xp, currentStart, nextStart, progress: Math.round((xp - currentStart) / Math.max(1, nextStart - currentStart) * 100) } }
