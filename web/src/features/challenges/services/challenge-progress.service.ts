@@ -1,5 +1,6 @@
 import { getChallengeRuleLogs } from './challenge.repository'
-import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, getLocalWorkouts, today } from '../../../lib/local-store'
+import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, today } from '../../../lib/local-store'
+import { getCompletedWorkoutCount } from '../../gym/services/gym.service'
 import type { Challenge, ChallengeProgress, ChallengeRule, ChallengeScoreCalculator, RuleProgress } from '../domain/challenge'
 
 export function calculateChallengeProgress(challenge: Challenge, date = today()): ChallengeProgress {
@@ -22,7 +23,7 @@ function valueFor(challenge: Challenge, rule: ChallengeRule, from: string, to: s
   if (rule.type === 'HABIT') return getLocalHabitLogs().filter(log => log.status === 'completed' && range(log.date) && (!rule.linkedEntityId || log.habit_id === rule.linkedEntityId)).length
   if (rule.type === 'READING_PAGES') return getLocalReadingSessions().filter(session => range(session.started_at.slice(0, 10))).reduce((sum, session) => sum + session.pages_read, 0)
   if (rule.type === 'READING_MINUTES') return Math.floor(getLocalReadingSessions().filter(session => range(session.started_at.slice(0, 10))).reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0) / 60)
-  if (rule.type === 'WORKOUT') return getLocalWorkouts().filter(workout => range(workout.date)).length
+  if (rule.type === 'WORKOUT') return getCompletedWorkoutCount(from, to)
   if (rule.type === 'FOCUS_MINUTES') return Math.floor(getLocalFocusSessions().filter(session => session.status === 'completed' && session.ended_at && range(session.ended_at.slice(0, 10))).reduce((sum, session) => sum + session.duration_seconds, 0) / 60)
   if (rule.type === 'CHECK_IN') return getLocalCheckIns().filter(checkin => range(checkin.date)).length
   if (rule.type === 'FINANCIAL') return getLocalFinanceTransactions().filter(item => range(item.date) && (!rule.linkedEntityId || item.financial_goal_id === rule.linkedEntityId)).length

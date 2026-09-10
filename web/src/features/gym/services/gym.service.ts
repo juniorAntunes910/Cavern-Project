@@ -1,0 +1,31 @@
+import { persistDatabaseValue } from '../../../lib/app-db'
+import { createId } from '../../../lib/id'
+import { grantConfiguredReward, getLocalWorkouts, today } from '../../../lib/local-store'
+import type { BodyWeightEntry, Exercise, GymAttendance, WorkoutPlan, WorkoutSession, WorkoutSessionExercise } from '../domain'
+import { defaultExercises } from '../data/defaultExercises'
+
+const keys = { exercises: 'cavern.gym.exercises.v1', plans: 'cavern.gym.plans.v1', sessions: 'cavern.gym.sessions.v1', attendance: 'cavern.gym.attendance.v1', bodyWeight: 'cavern.gym.body-weight.v1' }
+const read = <T,>(key: string): T[] => { try { return JSON.parse(localStorage.getItem(key) ?? '[]') as T[] } catch { return [] } }
+const write = <T,>(key: string, value: T[]) => { localStorage.setItem(key, JSON.stringify(value)); void persistDatabaseValue(key, value); window.dispatchEvent(new Event('cavern:data-changed')) }
+export const muscleLabels: Record<Exercise['muscleGroup'], string> = { CHEST: 'Peito', BACK: 'Costas', SHOULDERS: 'Ombros', BICEPS: 'Bíceps', TRICEPS: 'Tríceps', LEGS: 'Pernas', GLUTES: 'Glúteos', CALVES: 'Panturrilhas', CORE: 'Abdômen / Core', CARDIO: 'Cardio', OTHER: 'Outros' }
+export function getExercises() { return [...defaultExercises, ...read<Exercise>(keys.exercises)].sort((a, b) => a.name.localeCompare(b.name)) }
+export function createExercise(input: Omit<Exercise, 'id' | 'isCustom' | 'createdAt'>) { const exercise = { ...input, id: createId(), isCustom: true, createdAt: new Date().toISOString() }; write(keys.exercises, [...read<Exercise>(keys.exercises), exercise]); return exercise }
+export function updateCustomExercise(id: string, changes: Partial<Exercise>) { const next = read<Exercise>(keys.exercises).map(item => item.id === id ? { ...item, ...changes, id, isCustom: true } : item); write(keys.exercises, next) }
+export function deleteCustomExercise(id: string) { write(keys.exercises, read<Exercise>(keys.exercises).filter(item => item.id !== id)) }
+export function getWorkoutPlans() { return read<WorkoutPlan>(keys.plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }
+export function saveWorkoutPlan(plan: WorkoutPlan) { const current = getWorkoutPlans(); write(keys.plans, current.some(item => item.id === plan.id) ? current.map(item => item.id === plan.id ? plan : item) : [plan, ...current]); return plan }
+export function createWorkoutPlan(name: string, description = '') { const now = new Date().toISOString(); return saveWorkoutPlan({ id: createId(), name, description, exercises: [], createdAt: now, updatedAt: now }) }
+export function deleteWorkoutPlan(id: string) { write(keys.plans, getWorkoutPlans().filter(item => item.id !== id)) }
+export function getWorkoutSessions() { const modern = read<WorkoutSession>(keys.sessions); const legacy: WorkoutSession[] = getLocalWorkouts().map(item => ({ id: `legacy-${item.id}`, workoutName: item.title, startedAt: `${item.date}T12:00:00`, completedAt: `${item.date}T12:00:00`, exercises: [], status: 'COMPLETED' })); return [...modern, ...legacy].sort((a, b) => b.startedAt.localeCompare(a.startedAt)) }
+export function getCompletedWorkoutCount(from?: string, to?: string) { return getWorkoutSessions().filter(item => item.status === 'COMPLETED' && (!from || item.startedAt.slice(0, 10) >= from) && (!to || item.startedAt.slice(0, 10) <= to)).length }
+export function startWorkout(plan?: WorkoutPlan) { const exercises: WorkoutSessionExercise[] = (plan?.exercises ?? []).map(item => ({ id: createId(), exerciseId: item.exerciseId, order: item.order, sets: Array.from({ length: item.defaultSets ?? 1 }, (_, index) => ({ id: createId(), setNumber: index + 1, weightKg: 0, reps: item.repsMin ?? 0, completed: false })) })); const session: WorkoutSession = { id: createId(), workoutPlanId: plan?.id, workoutName: plan?.name ?? 'Treino livre', startedAt: new Date().toISOString(), exercises, status: 'IN_PROGRESS' }; write(keys.sessions, [session, ...read<WorkoutSession>(keys.sessions)]); return session }
+export function saveWorkoutSession(session: WorkoutSession) { const current = read<WorkoutSession>(keys.sessions); write(keys.sessions, current.map(item => item.id === session.id ? session : item)); return session }
+export function completeWorkout(session: WorkoutSession) { const completed = { ...session, status: 'COMPLETED' as const, completedAt: new Date().toISOString() }; saveWorkoutSession(completed); markAttendance(today(), 'WENT', completed.id); grantConfiguredReward('WORKOUT_COMPLETED', 'workout-session', completed.id, 'Treino concluído'); return completed }
+export function getAttendance() { return read<GymAttendance>(keys.attendance).sort((a, b) => b.date.localeCompare(a.date)) }
+export function markAttendance(date: string, status: GymAttendance['status'], workoutSessionId?: string) { const current = getAttendance(); const item: GymAttendance = { id: current.find(value => value.date === date)?.id ?? createId(), date, status, workoutSessionId, createdAt: new Date().toISOString() }; write(keys.attendance, [item, ...current.filter(value => value.date !== date)]); return item }
+export function getBodyWeight() { return read<BodyWeightEntry>(keys.bodyWeight).sort((a, b) => b.date.localeCompare(a.date)) }
+export function saveBodyWeight(date: string, weightKg: number) { const current = getBodyWeight(); const item: BodyWeightEntry = { id: current.find(value => value.date === date)?.id ?? createId(), date, weightKg, createdAt: new Date().toISOString() }; write(keys.bodyWeight, [item, ...current.filter(value => value.date !== date)]); return item }
+export function sessionVolume(session: WorkoutSession) { return session.exercises.flatMap(item => item.sets).filter(set => set.completed).reduce((total, set) => total + set.weightKg * set.reps, 0) }
+export function getPreviousExerciseSets(exerciseId: string, sessionId?: string) { return getWorkoutSessions().filter(item => item.status === 'COMPLETED' && item.id !== sessionId).flatMap(item => item.exercises).find(item => item.exerciseId === exerciseId)?.sets ?? [] }
+export function getWeekStart(date = today()) { const value = new Date(`${date}T12:00:00`); value.setDate(value.getDate() - ((value.getDay() + 6) % 7)); return value.toLocaleDateString('en-CA') }
+export { keys as gymDataKeys }

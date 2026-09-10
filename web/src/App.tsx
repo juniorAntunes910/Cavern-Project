@@ -1,172 +1,519 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
-import { allowedEmail, supabase, supabaseConfigured } from './lib/supabase'
-import { Goals } from './features/Goals'
-import { Habits } from './features/Habits'
-import { Progress } from './features/Progress'
-import { CheckIn } from './features/CheckIn'
-import { Gym } from './features/Gym'
-import { Books } from './features/Books'
-import { Reader } from './features/Reader'
-import { Finance } from './features/Finance'
-import { ChallengesPage } from './features/challenges/pages/ChallengesPage'
-import { Focus } from './features/focus/Focus'
-import { AchievementsPage } from './features/achievements/Achievements'
-import { Shop } from './features/shop/Shop'
-import { grantReward } from './features/gamification/rewards/reward.service'
-import { InstallBanner, InstallControl } from './components/AppInstall'
-import { NotificationSettings } from './components/NotificationSettings'
-import { getLocalHabitLogs, overallStreak } from './lib/local-store'
-import { startHabitReminderChecks } from './lib/notifications'
-import { useLocalRevision } from './lib/use-local-revision'
-import './App.css'
-import './theme-overrides.css'
-import './reader.css'
+import { useEffect, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { allowedEmail, supabase, supabaseConfigured } from "./lib/supabase";
+import { Goals } from "./features/Goals";
+import { Habits } from "./features/Habits";
+import { Progress } from "./features/Progress";
+import { CheckIn } from "./features/CheckIn";
+import { Gym } from "./features/Gym";
+import { Books } from "./features/Books";
+import { Reader } from "./features/Reader";
+import { Finance } from "./features/Finance";
+import { ChallengesPage } from "./features/challenges/pages/ChallengesPage";
+import { Focus } from "./features/focus/Focus";
+import { AchievementsPage } from "./features/achievements/Achievements";
+import { Shop } from "./features/shop/Shop";
+import { grantReward } from "./features/gamification/rewards/reward.service";
+import { InstallBanner, InstallControl } from "./components/AppInstall";
+import { NotificationSettings } from "./components/NotificationSettings";
+import { getLocalHabitLogs, overallStreak } from "./lib/local-store";
+import { startHabitReminderChecks } from "./lib/notifications";
+import { useLocalRevision } from "./lib/use-local-revision";
+import "./App.css";
+import "./theme-overrides.css";
+import "./reader.css";
 
-type Session = Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']
-const nav = [['/', 'Início'], ['/cavern', 'Caverna'], ['/goals', 'Metas'], ['/habits', 'Hábitos'], ['/focus', 'Foco'], ['/gym', 'Academia'], ['/books', 'Livros'], ['/achievements', 'Conquistas'], ['/shop', 'Loja'], ['/finance', 'Financeiro'], ['/checkins', 'Check-in'], ['/profile', 'Perfil']]
+type Session = Awaited<
+  ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>
+>["data"]["session"];
+const nav = [
+  ["/", "Início"],
+  ["/cavern", "Caverna"],
+  ["/goals", "Metas"],
+  ["/habits", "Hábitos"],
+  ["/focus", "Foco"],
+  ["/gym", "Academia"],
+  ["/books", "Livros"],
+  ["/achievements", "Conquistas"],
+  ["/shop", "Loja"],
+  ["/finance", "Financeiro"],
+  ["/checkins", "Check-in"],
+  ["/profile", "Perfil"],
+];
 
 export default function App() {
-  const [session, setSession] = useState<Session>(null)
-  const [loading, setLoading] = useState(supabaseConfigured)
+  const [session, setSession] = useState<Session>(null);
+  const [loading, setLoading] = useState(supabaseConfigured);
   useEffect(() => {
-    if (!supabase) return
-    void supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false) })
-    const { data } = supabase.auth.onAuthStateChange((_, next) => setSession(next))
-    return () => data.subscription.unsubscribe()
-  }, [])
-  if (!supabaseConfigured) return <LocalApp />
-  if (loading) return <main className="centered">Carregando...</main>
-  if (!session) return <Auth />
-  if (allowedEmail && session.user.email?.toLowerCase() !== allowedEmail) return <PrivateAccessDenied />
-  return <Shell profile={<Profile email={session.user.email ?? ''} />} />
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_, next) =>
+      setSession(next),
+    );
+    return () => data.subscription.unsubscribe();
+  }, []);
+  if (!supabaseConfigured) return <LocalApp />;
+  if (loading) return <main className="centered">Carregando...</main>;
+  if (!session) return <Auth />;
+  if (allowedEmail && session.user.email?.toLowerCase() !== allowedEmail)
+    return <PrivateAccessDenied />;
+  return <Shell profile={<Profile email={session.user.email ?? ""} />} />;
 }
 
 function LocalApp() {
-  const [authenticated, setAuthenticated] = useState(() => localStorage.getItem('cavern.local.authenticated') === 'true')
-  if (!authenticated) return <LocalLogin onSuccess={() => setAuthenticated(true)} />
-  return <Shell profile={<LocalProfile onLogout={() => setAuthenticated(false)} />} />
+  const [authenticated, setAuthenticated] = useState(
+    () => localStorage.getItem("cavern.local.authenticated") === "true",
+  );
+  if (!authenticated)
+    return <LocalLogin onSuccess={() => setAuthenticated(true)} />;
+  return (
+    <Shell
+      profile={<LocalProfile onLogout={() => setAuthenticated(false)} />}
+    />
+  );
 }
 
 function LocalLogin({ onSuccess }: { onSuccess: () => void }) {
-  const [user, setUser] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState('')
-  function submit(event: FormEvent) { event.preventDefault(); const credentials: Record<string, string> = { junior_ga_souza: 'senha123', denis_dev: 'denis_d', deretti: 'deretti-lindo', matheus_oliveira: 'corithias2026' }; const normalizedUser = user.trim().toLowerCase(); const normalizedPassword = password.trim(); if (credentials[normalizedUser] === normalizedPassword) { localStorage.setItem('cavern.local.authenticated', 'true'); localStorage.setItem('cavern.local.user', normalizedUser); onSuccess() } else setError('Usuário ou senha incorretos.') }
-  return <main className="auth">
-    <form className="auth-card" onSubmit={submit}>
-      <AuthBrand />
-      <div className="auth-heading">
-        <h1>Entrar no Cavern</h1>
-        <p>Seus dados permanecem protegidos e disponíveis neste dispositivo.</p>
-      </div>
-      <label htmlFor="local-user">Usuário
-        <input id="local-user" required autoComplete="username" placeholder="Digite seu usuário" spellCheck={false} value={user} onChange={event => setUser(event.target.value)} />
-      </label>
-      <label htmlFor="local-password">Senha
-        <input id="local-password" required autoComplete="current-password" placeholder="Digite sua senha" type="password" value={password} onChange={event => setPassword(event.target.value)} />
-      </label>
-      {error && <p className="message" role="alert">{error}</p>}
-      <button className="auth-submit">Entrar</button>
-      <p className="auth-footnote"><span aria-hidden="true" /> Seus dados ficam neste dispositivo</p>
-    </form>
-  </main>
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const credentials: Record<string, string> = {
+      junior_ga_souza: "senha123",
+      denis_dev: "denis_d",
+      deretti: "deretti-lindo",
+      matheus_oliveira: "corithias2026",
+      eichendorf: "30042008",
+    };
+    const normalizedUser = user.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+    if (credentials[normalizedUser] === normalizedPassword) {
+      localStorage.setItem("cavern.local.authenticated", "true");
+      localStorage.setItem("cavern.local.user", normalizedUser);
+      onSuccess();
+    } else setError("Usuário ou senha incorretos.");
+  }
+  return (
+    <main className="auth">
+      <form className="auth-card" onSubmit={submit}>
+        <AuthBrand />
+        <div className="auth-heading">
+          <h1>Entrar no Cavern</h1>
+          <p>
+            Seus dados permanecem protegidos e disponíveis neste dispositivo.
+          </p>
+        </div>
+        <label htmlFor="local-user">
+          Usuário
+          <input
+            id="local-user"
+            required
+            autoComplete="username"
+            placeholder="Digite seu usuário"
+            spellCheck={false}
+            value={user}
+            onChange={(event) => setUser(event.target.value)}
+          />
+        </label>
+        <label htmlFor="local-password">
+          Senha
+          <input
+            id="local-password"
+            required
+            autoComplete="current-password"
+            placeholder="Digite sua senha"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+        {error && (
+          <p className="message" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="auth-submit">Entrar</button>
+        <p className="auth-footnote">
+          <span aria-hidden="true" /> Seus dados ficam neste dispositivo
+        </p>
+      </form>
+    </main>
+  );
 }
 
 function Shell({ profile }: { profile: ReactNode }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  useEffect(() => startHabitReminderChecks(), [])
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => startHabitReminderChecks(), []);
   useEffect(() => {
-    if (!import.meta.env.DEV) return
+    if (!import.meta.env.DEV) return;
     const grantTestEmbers = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || event.key !== '9') return
-      event.preventDefault()
-      grantReward({ sourceType: 'debug', sourceId: crypto.randomUUID(), xp: 0, embers: 5000, title: 'Brasas de teste' })
-    }
-    window.addEventListener('keydown', grantTestEmbers)
-    return () => window.removeEventListener('keydown', grantTestEmbers)
-  }, [])
+      if (!event.ctrlKey || event.key !== "9") return;
+      event.preventDefault();
+      grantReward({
+        sourceType: "debug",
+        sourceId: crypto.randomUUID(),
+        xp: 0,
+        embers: 5000,
+        title: "Brasas de teste",
+      });
+    };
+    window.addEventListener("keydown", grantTestEmbers);
+    return () => window.removeEventListener("keydown", grantTestEmbers);
+  }, []);
   useEffect(() => {
-    if (!menuOpen) return
-    const previousOverflow = document.body.style.overflow
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false) }
-    document.body.style.overflow = 'hidden'
-    document.addEventListener('keydown', closeOnEscape)
-    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', closeOnEscape) }
-  }, [menuOpen])
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen]);
 
-  return <div className="app-shell">
-    <div className="mobile-topbar">
-      <button className="mobile-menu-trigger" type="button" aria-label="Abrir menu principal" aria-expanded={menuOpen} aria-controls="main-sidebar" onClick={() => setMenuOpen(true)}>
-        <span className="mobile-menu-icon" aria-hidden="true"><i /><i /><i /></span>
-      </button>
-      <div className="mobile-brand">CAVERN</div>
-      <StreakBadge compact />
+  return (
+    <div className="app-shell">
+      <div className="mobile-topbar">
+        <button
+          className="mobile-menu-trigger"
+          type="button"
+          aria-label="Abrir menu principal"
+          aria-expanded={menuOpen}
+          aria-controls="main-sidebar"
+          onClick={() => setMenuOpen(true)}
+        >
+          <span className="mobile-menu-icon" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        </button>
+        <div className="mobile-brand">CAVERN</div>
+        <StreakBadge compact />
+      </div>
+      <button
+        className={`mobile-menu-backdrop${menuOpen ? " is-open" : ""}`}
+        type="button"
+        aria-label="Fechar menu"
+        tabIndex={menuOpen ? 0 : -1}
+        onClick={() => setMenuOpen(false)}
+      />
+      <aside
+        id="main-sidebar"
+        className={`sidebar${menuOpen ? " is-open" : ""}`}
+        aria-label="Menu principal"
+        aria-modal={menuOpen || undefined}
+      >
+        <div className="sidebar-heading">
+          <div className="brand">CAVERN</div>
+          <button
+            className="mobile-menu-close"
+            type="button"
+            aria-label="Fechar menu"
+            onClick={() => setMenuOpen(false)}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <nav>
+          {nav.map(([to, label]) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/"}
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        <StreakBadge />
+        <ThemeToggle />
+      </aside>
+      <main className="content">
+        <InstallBanner />
+        <Routes>
+          <Route path="/" element={<Progress />} />
+          <Route path="/cavern" element={<ChallengesPage />} />
+          <Route path="/goals" element={<Goals />} />
+          <Route path="/habits" element={<Habits />} />
+          <Route path="/focus" element={<Focus />} />
+          <Route path="/gym" element={<Gym />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/books" element={<Books />} />
+          <Route path="/books/:id/read" element={<Reader />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/statistics" element={<Navigate to="/" replace />} />
+          <Route path="/checkins" element={<CheckIn />} />
+          <Route path="/profile" element={profile} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </div>
-    <button className={`mobile-menu-backdrop${menuOpen ? ' is-open' : ''}`} type="button" aria-label="Fechar menu" tabIndex={menuOpen ? 0 : -1} onClick={() => setMenuOpen(false)} />
-    <aside id="main-sidebar" className={`sidebar${menuOpen ? ' is-open' : ''}`} aria-label="Menu principal" aria-modal={menuOpen || undefined}>
-      <div className="sidebar-heading"><div className="brand">CAVERN</div><button className="mobile-menu-close" type="button" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><span aria-hidden="true">×</span></button></div>
-      <nav>{nav.map(([to, label]) => <NavLink key={to} to={to} end={to === '/'} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}</nav>
-      <StreakBadge />
-      <ThemeToggle />
-    </aside>
-    <main className="content"><InstallBanner /><Routes>
-    <Route path="/" element={<Progress />} /><Route path="/cavern" element={<ChallengesPage />} /><Route path="/goals" element={<Goals />} /><Route path="/habits" element={<Habits />} /><Route path="/focus" element={<Focus />} /><Route path="/gym" element={<Gym />} /><Route path="/finance" element={<Finance />} /><Route path="/books" element={<Books />} /><Route path="/books/:id/read" element={<Reader />} /><Route path="/achievements" element={<AchievementsPage />} /><Route path="/shop" element={<Shop />} /><Route path="/statistics" element={<Navigate to="/" replace />} /><Route path="/checkins" element={<CheckIn />} /><Route path="/profile" element={profile} /><Route path="*" element={<Navigate to="/" replace />} />
-  </Routes></main></div>
+  );
 }
 
 function ThemeToggle() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('cavern.theme') ?? 'dark')
-  useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem('cavern.theme', theme) }, [theme])
-  return <button className="theme-toggle" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? 'Tema claro' : 'Tema escuro'}</button>
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("cavern.theme") ?? "dark",
+  );
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("cavern.theme", theme);
+  }, [theme]);
+  return (
+    <button
+      className="theme-toggle"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      {theme === "dark" ? "Tema claro" : "Tema escuro"}
+    </button>
+  );
 }
 
 function StreakBadge({ compact = false }: { compact?: boolean }) {
-  useLocalRevision()
-  const streak = overallStreak(getLocalHabitLogs())
-  return <NavLink className={`streak-badge${compact ? ' compact' : ''}`} to="/" aria-label={`Sequência atual: ${streak} dias`}><span aria-hidden="true">🔥</span><strong>{streak}</strong>{!compact && <small>{streak === 1 ? 'dia seguido' : 'dias seguidos'}</small>}</NavLink>
+  useLocalRevision();
+  const streak = overallStreak(getLocalHabitLogs());
+  return (
+    <NavLink
+      className={`streak-badge${compact ? " compact" : ""}`}
+      to="/"
+      aria-label={`Sequência atual: ${streak} dias`}
+    >
+      <span aria-hidden="true">🔥</span>
+      <strong>{streak}</strong>
+      {!compact && (
+        <small>{streak === 1 ? "dia seguido" : "dias seguidos"}</small>
+      )}
+    </NavLink>
+  );
 }
 
-function PrivateAccessDenied() { return <main className="centered setup"><h1>Acesso privado</h1><p>Esta instalação do Cavern não está autorizada para esta conta.</p><button onClick={() => void supabase?.auth.signOut()}>Sair</button></main> }
-function Profile({ email }: { email: string }) { return <><header><p className="eyebrow">CAVERN</p><h1>Perfil</h1></header><section className="panel"><p>{email}</p><button onClick={() => void supabase?.auth.signOut()}>Sair</button></section><DeviceSettings /></> }
+function PrivateAccessDenied() {
+  return (
+    <main className="centered setup">
+      <h1>Acesso privado</h1>
+      <p>Esta instalação do Cavern não está autorizada para esta conta.</p>
+      <button onClick={() => void supabase?.auth.signOut()}>Sair</button>
+    </main>
+  );
+}
+function Profile({ email }: { email: string }) {
+  return (
+    <>
+      <header>
+        <p className="eyebrow">CAVERN</p>
+        <h1>Perfil</h1>
+      </header>
+      <section className="panel">
+        <p>{email}</p>
+        <button onClick={() => void supabase?.auth.signOut()}>Sair</button>
+      </section>
+      <DeviceSettings />
+    </>
+  );
+}
 function LocalProfile({ onLogout }: { onLogout?: () => void }) {
-  const [name, setName] = useState(() => localStorage.getItem('cavern.profile.name') ?? '')
-  const [saved, setSaved] = useState(false)
-  function save(event: FormEvent) { event.preventDefault(); localStorage.setItem('cavern.profile.name', name.trim()); setSaved(true); window.setTimeout(() => setSaved(false), 2200) }
-  function logout() { localStorage.removeItem('cavern.local.authenticated'); localStorage.removeItem('cavern.local.user'); onLogout?.() }
-  return <><header><p className="eyebrow">PREFERÊNCIAS</p><h1>Perfil</h1><p>Este perfil fica salvo neste dispositivo.</p></header><section className="panel profile-form"><form className="form" onSubmit={save}><label>Como quer ser chamado?<input value={name} placeholder="Seu nome" onChange={event => setName(event.target.value)} /></label><button>Salvar perfil</button>{saved && <p className="saved-message" role="status">Perfil salvo.</p>}</form><div className="profile-preference"><span>Tema da interface</span><ThemeToggle /></div><p className="profile-note">Hábitos, metas, livros e progresso permanecem disponíveis neste dispositivo, inclusive sem internet.</p><button className="danger" onClick={logout}>Sair da instalação</button></section><DeviceSettings /></>
+  const [name, setName] = useState(
+    () => localStorage.getItem("cavern.profile.name") ?? "",
+  );
+  const [saved, setSaved] = useState(false);
+  function save(event: FormEvent) {
+    event.preventDefault();
+    localStorage.setItem("cavern.profile.name", name.trim());
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2200);
+  }
+  function logout() {
+    localStorage.removeItem("cavern.local.authenticated");
+    localStorage.removeItem("cavern.local.user");
+    onLogout?.();
+  }
+  return (
+    <>
+      <header>
+        <p className="eyebrow">PREFERÊNCIAS</p>
+        <h1>Perfil</h1>
+        <p>Este perfil fica salvo neste dispositivo.</p>
+      </header>
+      <section className="panel profile-form">
+        <form className="form" onSubmit={save}>
+          <label>
+            Como quer ser chamado?
+            <input
+              value={name}
+              placeholder="Seu nome"
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+          <button>Salvar perfil</button>
+          {saved && (
+            <p className="saved-message" role="status">
+              Perfil salvo.
+            </p>
+          )}
+        </form>
+        <div className="profile-preference">
+          <span>Tema da interface</span>
+          <ThemeToggle />
+        </div>
+        <p className="profile-note">
+          Hábitos, metas, livros e progresso permanecem disponíveis neste
+          dispositivo, inclusive sem internet.
+        </p>
+        <button className="danger" onClick={logout}>
+          Sair da instalação
+        </button>
+      </section>
+      <DeviceSettings />
+    </>
+  );
 }
 
 function DeviceSettings() {
-  return <section className="panel device-settings"><div><p className="eyebrow">APLICATIVO</p><h2>Instalação e lembretes</h2><p>Configure o Cavern para funcionar como aplicativo no celular ou desktop.</p></div><InstallControl /><NotificationSettings /></section>
+  return (
+    <section className="panel device-settings">
+      <div>
+        <p className="eyebrow">APLICATIVO</p>
+        <h2>Instalação e lembretes</h2>
+        <p>
+          Configure o Cavern para funcionar como aplicativo no celular ou
+          desktop.
+        </p>
+      </div>
+      <InstallControl />
+      <NotificationSettings />
+    </section>
+  );
 }
 
 function Auth() {
-  const [register, setRegister] = useState(false); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [name, setName] = useState(''); const [message, setMessage] = useState(''); const [busy, setBusy] = useState(false); const canRegister = !allowedEmail
-  async function submit(event: FormEvent) { event.preventDefault(); if (!supabase) return; setBusy(true); setMessage(''); const response = register ? await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } }) : await supabase.auth.signInWithPassword({ email, password }); setBusy(false); setMessage(response.error?.message ?? (register ? 'Conta criada. Confira seu e-mail para confirmar o cadastro.' : '')) }
-  async function reset() { if (!supabase || !email) return setMessage('Informe seu e-mail para recuperar a senha.'); const { error } = await supabase.auth.resetPasswordForEmail(email); setMessage(error?.message ?? 'Instruções enviadas para seu e-mail.') }
-  return <main className="auth">
-    <form className="auth-card" onSubmit={submit}>
-      <AuthBrand />
-      <div className="auth-heading"><h1>{register ? 'Criar sua conta' : 'Entrar no Cavern'}</h1><p>{register ? 'Comece seu ciclo com intenção.' : 'Entre na sua caverna.'}</p></div>
-      {register && <label htmlFor="auth-name">Nome
-        <input id="auth-name" required autoComplete="name" placeholder="Como quer ser chamado?" value={name} onChange={event => setName(event.target.value)} />
-      </label>}
-      <label htmlFor="auth-email">E-mail
-        <input id="auth-email" required autoComplete="email" placeholder="voce@exemplo.com" type="email" value={email} onChange={event => setEmail(event.target.value)} />
-      </label>
-      <label htmlFor="auth-password">Senha
-        <input id="auth-password" required autoComplete={register ? 'new-password' : 'current-password'} minLength={8} placeholder="Digite sua senha" type="password" value={password} onChange={event => setPassword(event.target.value)} />
-      </label>
-      {message && <p className="message" role="status">{message}</p>}
-      <button className="auth-submit" disabled={busy}>{busy ? 'Aguarde...' : register ? 'Criar conta' : 'Entrar'}</button>
-      <div className="auth-secondary-actions">
-        {!register && <button type="button" className="link" onClick={reset}>Esqueci minha senha</button>}
-        {canRegister && <button type="button" className="link" onClick={() => setRegister(!register)}>{register ? 'Já tenho uma conta' : 'Criar conta'}</button>}
-      </div>
-    </form>
-  </main>
+  const [register, setRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const canRegister = !allowedEmail;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!supabase) return;
+    setBusy(true);
+    setMessage("");
+    const response = register
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { display_name: name } },
+        })
+      : await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    setMessage(
+      response.error?.message ??
+        (register
+          ? "Conta criada. Confira seu e-mail para confirmar o cadastro."
+          : ""),
+    );
+  }
+  async function reset() {
+    if (!supabase || !email)
+      return setMessage("Informe seu e-mail para recuperar a senha.");
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    setMessage(error?.message ?? "Instruções enviadas para seu e-mail.");
+  }
+  return (
+    <main className="auth">
+      <form className="auth-card" onSubmit={submit}>
+        <AuthBrand />
+        <div className="auth-heading">
+          <h1>{register ? "Criar sua conta" : "Entrar no Cavern"}</h1>
+          <p>
+            {register
+              ? "Comece seu ciclo com intenção."
+              : "Entre na sua caverna."}
+          </p>
+        </div>
+        {register && (
+          <label htmlFor="auth-name">
+            Nome
+            <input
+              id="auth-name"
+              required
+              autoComplete="name"
+              placeholder="Como quer ser chamado?"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+        )}
+        <label htmlFor="auth-email">
+          E-mail
+          <input
+            id="auth-email"
+            required
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+        <label htmlFor="auth-password">
+          Senha
+          <input
+            id="auth-password"
+            required
+            autoComplete={register ? "new-password" : "current-password"}
+            minLength={8}
+            placeholder="Digite sua senha"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </label>
+        {message && (
+          <p className="message" role="status">
+            {message}
+          </p>
+        )}
+        <button className="auth-submit" disabled={busy}>
+          {busy ? "Aguarde..." : register ? "Criar conta" : "Entrar"}
+        </button>
+        <div className="auth-secondary-actions">
+          {!register && (
+            <button type="button" className="link" onClick={reset}>
+              Esqueci minha senha
+            </button>
+          )}
+          {canRegister && (
+            <button
+              type="button"
+              className="link"
+              onClick={() => setRegister(!register)}
+            >
+              {register ? "Já tenho uma conta" : "Criar conta"}
+            </button>
+          )}
+        </div>
+      </form>
+    </main>
+  );
 }
 
 function AuthBrand() {
-  return <div className="auth-brand"><img alt="" aria-hidden="true" src="/app-icon.svg" /><span>CAVERN</span></div>
+  return (
+    <div className="auth-brand">
+      <img alt="" aria-hidden="true" src="/app-icon.svg" />
+      <span>CAVERN</span>
+    </div>
+  );
 }

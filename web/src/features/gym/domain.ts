@@ -1,0 +1,10 @@
+export type ExerciseMuscleGroup = 'CHEST' | 'BACK' | 'SHOULDERS' | 'BICEPS' | 'TRICEPS' | 'LEGS' | 'GLUTES' | 'CALVES' | 'CORE' | 'CARDIO' | 'OTHER'
+export type ExerciseEquipment = 'BARBELL' | 'DUMBBELL' | 'MACHINE' | 'CABLE' | 'BODYWEIGHT' | 'CARDIO_MACHINE' | 'OTHER'
+export type Exercise = { id: string; name: string; muscleGroup: ExerciseMuscleGroup; equipment?: ExerciseEquipment; isCustom: boolean; createdAt?: string }
+export type WorkoutSet = { id: string; setNumber: number; weightKg: number; reps: number; completed: boolean }
+export type WorkoutPlanExercise = { id: string; exerciseId: string; order: number; defaultSets?: number; repsMin?: number; repsMax?: number }
+export type WorkoutPlan = { id: string; name: string; description?: string; exercises: WorkoutPlanExercise[]; createdAt: string; updatedAt: string }
+export type WorkoutSessionExercise = { id: string; exerciseId: string; order: number; sets: WorkoutSet[] }
+export type WorkoutSession = { id: string; workoutPlanId?: string; workoutName: string; startedAt: string; completedAt?: string; exercises: WorkoutSessionExercise[]; status: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' }
+export type GymAttendance = { id: string; date: string; status: 'WENT' | 'DID_NOT_GO'; workoutSessionId?: string; createdAt: string }
+export type BodyWeightEntry = { id: string; date: string; weightKg: number; createdAt: string }
