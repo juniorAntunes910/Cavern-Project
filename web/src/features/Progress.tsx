@@ -4,7 +4,12 @@ import {
   getLocalCheckIns,
   getLocalCustomization,
   getLocalHabitLogs,
+  getLocalHabits,
+  getLocalGoals,
   getLocalReadingSessions,
+  clearHabitLog,
+  goalProgress,
+  logHabit,
   overallStreak,
   today,
 } from "../lib/local-store";
@@ -20,6 +25,8 @@ const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 export function Progress() {
   useLocalRevision();
   const logs = getLocalHabitLogs();
+  const habits = getLocalHabits().filter((habit) => habit.active);
+  const goals = getLocalGoals().filter((goal) => goal.status === "active");
   const sessions = getLocalReadingSessions();
   const checkins = getLocalCheckIns();
   const challenge = getChallenges().find((item) => item.status === "ACTIVE");
@@ -57,28 +64,47 @@ export function Progress() {
     <>
       <header>
         <p className="eyebrow">VISÃO GERAL</p>
-        <h1>Seu progresso</h1>
-        <p>Consistência se constrói dia após dia.</p>
+        <h1>Seu dia, no seu ritmo</h1>
+        <p>Escolha uma ação pequena para avançar hoje.</p>
       </header>
+      <section className="today-panel panel">
+        <div className="today-heading">
+          <div>
+            <p className="eyebrow">HOJE</p>
+            <h2>O que você quer concluir?</h2>
+            <p>{habits.length ? `${habits.filter((habit) => logs.some((log) => log.habit_id === habit.id && log.date === today() && log.status === "completed")).length} de ${habits.length} hábitos concluídos` : "Comece com um hábito simples."}</p>
+          </div>
+          <NavLink className="button subtle" to="/habits">{habits.length ? "Gerenciar hábitos" : "Criar primeiro hábito"}</NavLink>
+        </div>
+        {habits.length > 0 && <div className="today-list">
+          {habits.map((habit) => {
+            const done = logs.some((log) => log.habit_id === habit.id && log.date === today() && log.status === "completed");
+            return <div className="today-item" key={habit.id}>
+              <span className={done ? "today-check done" : "today-check"} aria-hidden="true">{done ? "✓" : ""}</span>
+              <strong>{habit.name}</strong>
+              <button className={done ? "subtle" : ""} aria-label={done ? `Desfazer conclusão de ${habit.name}` : `Concluir ${habit.name}`} onClick={() => done ? clearHabitLog(habit.id, today()) : logHabit(habit.id, today(), "completed")}>{done ? "Desfazer" : "Concluir"}</button>
+            </div>;
+          })}
+        </div>}
+        {goals.length > 0 && <div className="today-goals">
+          <span>Metas em andamento</span>
+          {goals.slice(0, 2).map((goal) => <NavLink to="/goals" key={goal.id}>{goal.title} <strong>{Math.min(100, Math.round(goalProgress(goal) / goal.target_value * 100))}%</strong></NavLink>)}
+        </div>}
+      </section>
       {challenge && <CurrentCavern challenge={challenge} />}
       <FireJourney streak={streak} />
       <div className="progress-actions">
-        <NavLink className="button" to="/cavern">
-          {challenge ? "Continuar Caverna" : "Criar Caverna"}
-        </NavLink>
         <NavLink className="button subtle" to="/focus">
-          Deep Work
+          Iniciar foco
         </NavLink>
         <NavLink className="button subtle" to="/checkins">
           Fazer check-in
         </NavLink>
+        <NavLink className="button subtle" to="/cavern">
+          {challenge ? "Continuar Caverna" : "Explorar Caverna"}
+        </NavLink>
       </div>
-      <section className="visual-summary">
-        <article className="streak-hero">
-          <span>Sequência atual</span>
-          <strong>{streak}</strong>
-          <small>dias consecutivos</small>
-        </article>
+      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && <><section className="visual-summary">
         <ActivityChart values={chart} />
       </section>
       <MonthlyComparison metrics={metrics} />
@@ -88,7 +114,7 @@ export function Progress() {
           <h2>{monthLabel()}</h2>
         </div>
         <Calendar activeDates={active} />
-      </section>
+      </section></>}
     </>
   );
 }
@@ -187,8 +213,13 @@ export function StreakScene({
     {
       "fire-blue": ["#3b9dff", "#b5e7ff"],
       "fire-purple": ["#a16cff", "#ead9ff"],
+      "fire-green": ["#29b878", "#b8ffd0"],
+      "fire-rose": ["#ee69a8", "#ffd2e8"],
+      "fire-sun": ["#ffc247", "#fff4a2"],
     } as Record<string, [string, string]>
   )[loadout.fire_skin_id] ?? ["#f58d38", "#ffdc79"];
+  const mascotColor = loadout.mascot_id === 'bot-copper' ? '#d98d5b' : loadout.mascot_id === 'bot-moss' ? '#7aab77' : '#9c7de8';
+  const mascotShadow = loadout.mascot_id === 'bot-copper' ? '#94603e' : loadout.mascot_id === 'bot-moss' ? '#4d7852' : '#69529f';
   return (
     <svg
       className="streak-scene"
@@ -240,10 +271,11 @@ export function StreakScene({
         </g>
       ) : (
         <g>
+          {loadout.body_item_id === 'cloak' && <path d="M54 75Q35 89 26 161Q89 194 154 160Q143 92 123 74Z" fill="#633e92" stroke="#af83dc" strokeWidth="3" />}
           <path
             d="M39 159Q20 119 48 76Q62 48 89 39Q117 49 136 81Q159 121 135 159Z"
-            fill="#9c7de8"
-            stroke="#69529f"
+            fill={mascotColor}
+            stroke={mascotShadow}
             strokeWidth="3"
           />
           <path
@@ -262,12 +294,13 @@ export function StreakScene({
           <path
             d="M48 139Q30 147 36 162M132 139Q148 141 155 128"
             fill="none"
-            stroke="#9c7de8"
+            stroke={mascotColor}
             strokeWidth="14"
             strokeLinecap="round"
           />
-          <ellipse cx="67" cy="172" rx="22" ry="10" fill="#69529f" />
-          <ellipse cx="116" cy="172" rx="22" ry="10" fill="#69529f" />
+          <ellipse cx="67" cy="172" rx="22" ry="10" fill={mascotShadow} />
+          <ellipse cx="116" cy="172" rx="22" ry="10" fill={mascotShadow} />
+          {loadout.body_item_id === 'scarf' && <path d="M52 139Q90 156 130 137L126 151Q91 169 54 151Z" fill="#c94e65" stroke="#ff9cae" strokeWidth="2" />}
           {loadout.head_item_id === "cap" && (
             <>
               <path d="M53 83Q89 48 125 83Z" fill="#2d7ec7" />
@@ -282,6 +315,8 @@ export function StreakScene({
               strokeWidth="3"
             />
           )}
+          {loadout.head_item_id === 'beanie' && <path d="M51 85Q53 43 89 39Q124 43 128 85Z" fill="#39446e" stroke="#8296cf" strokeWidth="4" />}
+          {loadout.head_item_id === 'crown' && <path d="M53 81L57 54L72 70L89 44L106 70L121 54L127 81Z" fill="#ffcc63" stroke="#a86622" strokeWidth="3" />}
           {loadout.accessory_item_id === "glasses" && (
             <>
               <circle
@@ -303,8 +338,17 @@ export function StreakScene({
               <path d="M86 106H95" stroke="#7fc7e8" strokeWidth="3" />
             </>
           )}
+          {loadout.accessory_item_id === 'monocle' && <><circle cx="106" cy="106" r="12" fill="none" stroke="#e4c46e" strokeWidth="3" /><path d="M117 113Q124 125 121 139" fill="none" stroke="#e4c46e" strokeWidth="2" /></>}
+          {loadout.accessory_item_id === 'star-glasses' && <><path d="M75 92L79 101L89 102L82 110L84 120L75 115L66 120L68 110L61 102L71 101Z M106 92L110 101L120 102L113 110L115 120L106 115L97 120L99 110L92 102L102 101Z" fill="none" stroke="#ffd371" strokeWidth="3" /></>}
         </g>
       )}
+      {loadout.mascot_id === 'bat' && loadout.body_item_id === 'scarf' && <path d="M59 127Q81 143 105 127L101 140Q82 150 63 140Z" fill="#c94e65" stroke="#ff9cae" strokeWidth="2" />}
+      {loadout.mascot_id === 'bat' && loadout.body_item_id === 'cloak' && <path d="M56 121Q82 140 108 121L118 151Q80 173 45 151Z" fill="#633e92" stroke="#af83dc" strokeWidth="2" />}
+      {loadout.mascot_id === 'bat' && loadout.head_item_id === 'beanie' && <path d="M57 94Q59 63 81 61Q104 63 106 94Z" fill="#39446e" stroke="#8296cf" strokeWidth="3" />}
+      {loadout.mascot_id === 'bat' && loadout.head_item_id === 'miner-helmet' && <path d="M57 94Q82 60 107 94Z" fill="#f3b84a" stroke="#9f7121" strokeWidth="3" />}
+      {loadout.mascot_id === 'bat' && loadout.head_item_id === 'crown' && <path d="M59 90L61 72L72 82L82 64L93 82L103 72L106 90Z" fill="#ffcc63" stroke="#a86622" strokeWidth="2" />}
+      {loadout.mascot_id === 'bat' && loadout.accessory_item_id === 'monocle' && <circle cx="88" cy="103" r="9" fill="none" stroke="#e4c46e" strokeWidth="2" />}
+      {loadout.mascot_id === 'bat' && loadout.accessory_item_id === 'star-glasses' && <path d="M72 95L75 101L82 102L77 108L78 115L72 111L66 115L67 108L62 102L69 101Z M89 95L92 101L99 102L94 108L95 115L89 111L83 115L84 108L79 102L86 101Z" fill="none" stroke="#ffd371" strokeWidth="2" />}
       {level > 0 && (
         <ellipse
           cx="225"
@@ -345,6 +389,8 @@ export function StreakScene({
           opacity=".6"
         />
       )}
+      {loadout.effect_item_id === 'sparks' && <g fill="#ffd371"><circle cx="204" cy="47" r="2"/><circle cx="257" cy="66" r="3"/><circle cx="186" cy="96" r="2"/><path d="M239 34l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></g>}
+      {loadout.effect_item_id === 'fireflies' && <g fill="#a5ffb7"><circle cx="20" cy="62" r="3"/><circle cx="151" cy="45" r="2"/><circle cx="270" cy="82" r="3"/><circle cx="160" cy="121" r="2"/><circle cx="246" cy="36" r="2"/></g>}
     </svg>
   );
 }

@@ -52,6 +52,8 @@ npm run dev
 
 Abra o endereço exibido pelo Vite. Sem variáveis de ambiente, o Cavern continua funcionando no modo local e offline.
 
+No modo local, o aplicativo abre diretamente e guarda os dados no perfil atual do navegador. Ele não separa usuários nem criptografa os registros. Para acesso por conta, configure o Supabase. Veja o [plano de retomada](docs/recovery-plan.md) para o estado dos fluxos e as próximas prioridades.
+
 ### Configurar o Supabase (opcional)
 
 1. Copie [`web/.env.example`](web/.env.example) para `web/.env`.

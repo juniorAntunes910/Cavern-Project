@@ -9,15 +9,22 @@ export function calculateChallengeProgress(challenge: Challenge, date = today())
   const weekStart = monday(date); const weeklyRules = challenge.rules.filter(rule => rule.frequency === 'WEEKLY').map(rule => ruleProgress(challenge, rule, weekStart, date))
   const end = date <= challenge.endDate ? date : challenge.endDate
   const totalRules = challenge.rules.filter(rule => rule.frequency === 'TOTAL').map(rule => ruleProgress(challenge, rule, challenge.startDate, end))
-  const all = [...datedRules, ...weeklyRules, ...totalRules]
-  const overall = all.length ? Math.round(all.reduce((sum, item) => sum + Math.min(1, item.current / item.target), 0) / all.length * 100) : 0
   const dailyRules = challenge.rules.filter(rule => rule.frequency === 'DAILY')
   const completedDays = dailyRules.length ? datesBetween(challenge.startDate, end).filter(day => dailyRules.every(rule => ruleProgress(challenge, rule, day, day).completed)) : []
+  const cycleDays = datesBetween(challenge.startDate, challenge.endDate)
+  const elapsedDays = cycleDays.filter(day => day <= date)
+  const weeks = [...new Set(cycleDays.map(monday))]
+  const ratios = challenge.rules.map(rule => {
+    if (rule.frequency === 'DAILY') return elapsedDays.reduce((sum, day) => sum + Math.min(1, valueFor(challenge, rule, day, day) / rule.target), 0) / cycleDays.length
+    if (rule.frequency === 'WEEKLY') return weeks.filter(week => week <= date).reduce((sum, week) => sum + Math.min(1, valueFor(challenge, rule, week, shift(week, 6) < end ? shift(week, 6) : end) / rule.target), 0) / weeks.length
+    return Math.min(1, valueFor(challenge, rule, challenge.startDate, end) / rule.target) * elapsedDays.length / cycleDays.length
+  })
+  const overall = ratios.length ? Math.round(ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length * 100) : 0
   return { overall, currentDay, daysRemaining: Math.max(0, daysBetween(date, challenge.endDate)), today: datedRules, weekly: weeklyRules, total: totalRules, perfectDays: completedDays.length, perfectDayRate: currentDay ? Math.round(completedDays.length / currentDay * 100) : 0, streak: trailingPerfectDays(challenge, date) }
 }
 
 export const defaultChallengeScoreCalculator: ChallengeScoreCalculator = { calculate: (_challenge, progress) => progress.overall }
-function ruleProgress(challenge: Challenge, rule: ChallengeRule, from: string, to: string): RuleProgress { return { rule, target: rule.target, current: valueFor(challenge, rule, from, to), completed: valueFor(challenge, rule, from, to) >= rule.target } }
+function ruleProgress(challenge: Challenge, rule: ChallengeRule, from: string, to: string): RuleProgress { const current = valueFor(challenge, rule, from, to); return { rule, target: rule.target, current, completed: current >= rule.target } }
 function valueFor(challenge: Challenge, rule: ChallengeRule, from: string, to: string) {
   const range = (date: string) => date >= from && date <= to && date >= challenge.startDate && date <= challenge.endDate
   if (rule.type === 'HABIT') return getLocalHabitLogs().filter(log => log.status === 'completed' && range(log.date) && (!rule.linkedEntityId || log.habit_id === rule.linkedEntityId)).length

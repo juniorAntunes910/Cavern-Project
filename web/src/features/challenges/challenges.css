@@ -3,3 +3,18 @@
 .dialog-backdrop .confirm-dialog.challenge-editor{box-sizing:border-box;max-width:min(900px,calc(100vw - 32px));width:100%}.challenge-editor{min-width:0}.challenge-editor .section-heading{margin:0}.challenge-editor .editor-rule{align-items:center;grid-template-columns:minmax(170px,1.5fr) 72px minmax(120px,.8fr) minmax(110px,.7fr) auto}.challenge-editor .editor-rule>*{min-width:0}.challenge-editor .editor-actions{margin-top:0}
 .dialog-backdrop .confirm-dialog.challenge-editor>.date-pair{display:grid;gap:10px;grid-template-columns:1fr 1fr;justify-content:normal;margin-top:0}.dialog-backdrop .confirm-dialog.challenge-editor>.editor-rules{display:grid;gap:10px;justify-content:normal;margin-top:0}.dialog-backdrop .confirm-dialog.challenge-editor>.editor-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:0}.dialog-backdrop .confirm-dialog.challenge-editor .editor-rule{display:grid;width:100%}
 @media(max-width:700px){.dialog-backdrop{align-items:flex-start;overflow:auto;padding:16px}.dialog-backdrop .confirm-dialog.challenge-editor{margin:auto 0;max-height:none;min-height:calc(100dvh - 32px);overflow:visible;padding:20px}.challenge-editor .editor-rule{align-items:stretch;grid-template-columns:minmax(0,1fr) 72px}.challenge-editor .editor-rule select{grid-column:auto}.challenge-editor .editor-rule select:nth-of-type(2){grid-column:1}.challenge-editor .editor-rule button{grid-column:2}.challenge-editor .editor-actions{display:grid;grid-template-columns:1fr}.challenge-editor .editor-actions button{width:100%}}
+@media(max-width:700px){
+  .cavern-empty,.active-cavern{margin-bottom:16px}
+  .cavern-empty{gap:12px}.cavern-empty h2{font-size:1.25rem;line-height:1.2}.cavern-empty p:not(.eyebrow){font-size:.86rem;line-height:1.4}
+  .challenge-section{margin:24px 0}.section-heading{gap:10px;margin-bottom:12px}
+  .challenge-template-grid{gap:9px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .challenge-template{align-content:start;gap:7px;padding:12px}
+  .challenge-template h3{font-size:1rem;line-height:1.25;overflow-wrap:anywhere}
+  .challenge-template p:not(.eyebrow){display:-webkit-box;font-size:.78rem;line-height:1.35;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .challenge-template button{font-size:.8rem;justify-self:stretch;margin-top:auto;padding:8px}
+  .active-cavern-hero{gap:10px;padding:16px}.cavern-progress{height:76px;width:76px}.cavern-progress strong{font-size:1.1rem}
+  .cavern-metrics article{gap:2px;padding:11px 14px}.cavern-metrics strong{font-size:1.2rem}
+  .today-rules,.checkpoint-list,.challenge-detail-actions{padding:15px}.rule-line{gap:9px;padding:10px}
+  .focus-timer{gap:12px;padding:20px}.focus-timer>strong{font-size:clamp(2.5rem,13vw,4rem)}
+}
+@media(max-width:340px){.challenge-template-grid{grid-template-columns:1fr}}

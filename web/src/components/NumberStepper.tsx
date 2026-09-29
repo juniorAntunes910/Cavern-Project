@@ -1,3 +1,5 @@
+import { useId, useState } from 'react'
+
 type NumberStepperProps = {
   label: string;
   value: number;
@@ -6,6 +8,8 @@ type NumberStepperProps = {
   max?: number;
   step?: number;
   suffix?: string;
+  required?: boolean;
+  wholeNumbers?: boolean;
 };
 
 export function NumberStepper({
@@ -16,13 +20,30 @@ export function NumberStepper({
   max = Number.MAX_SAFE_INTEGER,
   step = 1,
   suffix,
+  required = true,
+  wholeNumbers = false,
 }: NumberStepperProps) {
-  const next = (amount: number) =>
-    onChange(Math.min(max, Math.max(min, Number((value + amount).toFixed(8)))));
+  const [draft, setDraft] = useState<string | null>(null)
+  const errorId = useId()
+  const parsed = draft === null || draft.trim() === '' ? NaN : Number(draft.replace(',', '.'))
+  const invalid = draft !== null && (draft.trim() === '' || !Number.isFinite(parsed) || parsed < min || parsed > max || (wholeNumbers && !Number.isInteger(parsed)))
+  const next = (amount: number) => {
+    const base = Number.isFinite(parsed) ? parsed : value
+    const candidate = Number((base + amount).toFixed(8))
+    setDraft(null)
+    onChange(Math.min(max, Math.max(min, wholeNumbers ? Math.round(candidate) : candidate)))
+  }
   const setManualValue = (raw: string) => {
-    const parsed = Number(raw.replace(",", "."));
-    if (Number.isFinite(parsed)) onChange(Math.min(max, Math.max(min, parsed)));
+    setDraft(raw)
+    if (!raw.trim()) return
+    const nextValue = Number(raw.replace(',', '.'))
+    if (Number.isFinite(nextValue) && nextValue >= min && nextValue <= max && (!wholeNumbers || Number.isInteger(nextValue))) onChange(nextValue)
   };
+  const finishEditing = () => {
+    if (invalid) return
+    if (draft !== null) onChange(parsed)
+    setDraft(null)
+  }
   return (
     <div className="number-stepper">
       <span>{label}</span>
@@ -39,13 +60,19 @@ export function NumberStepper({
         <label className="stepper-manual">
           <input
             aria-label={label}
+            aria-invalid={invalid}
+            aria-describedby={invalid ? errorId : undefined}
             inputMode="decimal"
             type="number"
             min={min}
             max={max}
-            step={step}
-            value={value}
+            step={wholeNumbers ? 1 : 'any'}
+            required={required}
+            value={draft ?? value}
+            onFocus={() => setDraft(current => current ?? String(value))}
             onChange={(event) => setManualValue(event.target.value)}
+            onBlur={finishEditing}
+            onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
           />
           {suffix && <small>{suffix}</small>}
         </label>
@@ -59,6 +86,7 @@ export function NumberStepper({
           +
         </button>
       </div>
+      {invalid && <small id={errorId} className="stepper-error" role="alert">{draft?.trim() === '' ? 'Informe um valor.' : `Use ${wholeNumbers ? 'um número inteiro' : 'um valor'} ${max === Number.MAX_SAFE_INTEGER ? `a partir de ${min}` : `entre ${min} e ${max}`}.`}</small>}
     </div>
   );
 }

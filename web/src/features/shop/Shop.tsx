@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   getLocalCustomization,
   getLocalInventory,
+  grantLocalReward,
   saveLocalCustomization,
+  unlockLocalAchievement,
   type LocalCustomization,
 } from "../../lib/local-store";
 import { getBalance } from "../gamification/rewards/reward.service";
-import { shopItems, type ShopItem } from "./domain/shop";
+import { shopItems, type ShopItem, type ShopItemType } from "./domain/shop";
 import { buyItem, ownsItem } from "./services/shop.service";
 import { StreakScene } from "../Progress";
+import { evaluateAchievements } from "../achievements/services/achievement.service";
+import { useLocalRevision } from "../../lib/use-local-revision";
 import "../challenges/challenges.css";
 import "./shop.css";
 
@@ -37,9 +41,18 @@ function previewLoadout(
 }
 
 export function Shop() {
+  useLocalRevision();
   const [, refresh] = useState(0);
+  const [category, setCategory] = useState<ShopItemType | 'ALL'>('ALL');
   const [message, setMessage] = useState("");
   const [pendingPurchase, setPendingPurchase] = useState<ShopItem | null>(null);
+  useEffect(() => {
+    for (const achievement of evaluateAchievements()) {
+      if (unlockLocalAchievement(achievement.id)) {
+        grantLocalReward('achievement', achievement.id, achievement.rewardXp, achievement.rewardEmbers, achievement.title);
+      }
+    }
+  }, []);
   const balance = getBalance();
   const loadout = getLocalCustomization();
   function confirmPurchase() {
@@ -94,8 +107,11 @@ export function Shop() {
           </p>
         </div>
       </section>
+      <nav className="shop-filters" aria-label="Categorias da loja">
+        {([['ALL', 'Tudo'], ['FIRE_SKIN', 'Fogueiras'], ['MASCOT', 'Mascotes'], ['HEAD', 'Cabeça'], ['BODY', 'Roupas'], ['ACCESSORY', 'Acessórios'], ['EFFECT', 'Efeitos']] as const).map(([value, label]) => <button key={value} className={category === value ? 'selected' : 'subtle'} aria-pressed={category === value} onClick={() => setCategory(value)}>{label}</button>)}
+      </nav>
       <section className="shop-grid">
-        {shopItems.map((item) => {
+        {shopItems.filter(item => category === 'ALL' || item.type === category).map((item) => {
           const owned = ownsItem(item.id);
           const equipped = Object.values(loadout).includes(item.id);
           return (
@@ -107,7 +123,7 @@ export function Shop() {
                 />
               </div>
               <strong>{item.preview}</strong>
-              <p className="eyebrow">{item.rarity}</p>
+              <p className="eyebrow">{{ COMMON: 'COMUM', RARE: 'RARO', EPIC: 'ÉPICO', LEGENDARY: 'LENDÁRIO' }[item.rarity]}</p>
               <h2>{item.name}</h2>
               <p>{item.description}</p>
               <b>
@@ -128,8 +144,8 @@ export function Shop() {
               ) : owned ? (
                 <button onClick={() => equip(item)}>Equipar</button>
               ) : item.price ? (
-                <button onClick={() => setPendingPurchase(item)}>
-                  Comprar
+                <button disabled={balance.embers < item.price} onClick={() => setPendingPurchase(item)}>
+                  {balance.embers < item.price ? `Faltam ${item.price - balance.embers} Brasas` : 'Comprar'}
                 </button>
               ) : (
                 <button disabled>Indisponível</button>

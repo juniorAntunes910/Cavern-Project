@@ -14,6 +14,7 @@ export function Reader() {
 function BookReader({ book }: { book: LocalBook }) {
   const navigate = useNavigate()
   const [page, setPage] = useState(book.current_page)
+  const [finished, setFinished] = useState(book.status === 'finished')
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null)
   const [zoom, setZoom] = useState(1)
   const [width, setWidth] = useState(0)
@@ -60,11 +61,12 @@ function BookReader({ book }: { book: LocalBook }) {
       if (cancelled) { await document.loadingTask.destroy(); return }
       setPdf(document)
       const safePage = Math.min(document.numPages, Math.max(1, book.current_page))
+      if (book.status === 'want_to_read') updateLocalBook(book.id, { status: 'reading' })
       pageRef.current = safePage
       setPage(safePage)
     })().catch(e => { if (!cancelled) { setError(readablePdfError(e)); setLoading(false) } })
     return () => { cancelled = true; if (document) void document.loadingTask.destroy() }
-  }, [book.id, book.current_page])
+  }, [book.id, book.current_page, book.status])
 
   useEffect(() => {
     const target = stage.current
@@ -128,6 +130,7 @@ function BookReader({ book }: { book: LocalBook }) {
     const safe = Math.max(1, Math.min(pdf.numPages, next))
     if (sessionId.current) updateReadingSession(sessionId.current, safe)
     updateLocalBook(book.id, { current_page: safe, status: safe === pdf.numPages ? 'finished' : 'reading' })
+    setFinished(safe === pdf.numPages)
     pageRef.current = safe
     setPage(safe)
     stage.current?.scrollTo({ top: 0, left: 0 })
@@ -157,6 +160,6 @@ function BookReader({ book }: { book: LocalBook }) {
     <div className="reader-zoom" role="group" aria-label="Zoom do PDF"><button className="subtle" aria-label="Diminuir zoom" disabled={!pdf || zoom <= .5} onClick={() => changeZoom(zoom - .25)}>−</button><output aria-label="Zoom atual">{Math.round(zoom * 100)}%</output><button className="subtle" aria-label="Aumentar zoom" disabled={!pdf || zoom >= 3} onClick={() => changeZoom(zoom + .25)}>+</button><button className="subtle" disabled={!pdf} onClick={() => changeZoom(1)}>Ajustar largura</button></div>
     <p className="sr-status" role="status">{status}</p>
     <div className="pdf-stage" ref={stage} aria-busy={loading}>{loading && !error && <p className="pdf-loading">Carregando página…</p>}{error && <p className="empty" role="alert">{error}</p>}<div ref={output} className="pdf-output" /></div>
-    <footer className="reader-controls"><button disabled={loading || !pdf || page <= 1} onClick={() => goTo(page - 1)}>Anterior</button><strong>Página {page} / {pdf?.numPages ?? book.total_pages}</strong><button disabled={loading || !pdf || page >= pdf.numPages} onClick={() => goTo(page + 1)}>Próxima</button></footer>
+    <footer className="reader-controls"><button disabled={loading || !pdf || page <= 1} onClick={() => goTo(page - 1)}>Anterior</button><strong>Página {page} / {pdf?.numPages ?? book.total_pages}</strong><button disabled={loading || !pdf || page >= pdf.numPages} onClick={() => goTo(page + 1)}>Próxima</button>{pdf && page === pdf.numPages && !finished && <button onClick={() => { updateLocalBook(book.id, { current_page: page, status: 'finished' }); setFinished(true); setStatus('Livro marcado como concluído.') }}>Concluir leitura</button>}</footer>
   </section>
 }

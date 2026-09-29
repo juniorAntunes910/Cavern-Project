@@ -1,0 +1,10 @@
+@media(max-width:700px){
+  .reader{margin:-18px -14px 0;padding:14px;min-height:calc(100dvh - 58px - max(env(safe-area-inset-top, 0px),var(--safe-area-inset-top, 0px)))}
+  .reader header{gap:10px;margin-bottom:12px;padding-bottom:12px}
+  .reader header h1{font-size:1.1rem}.reader-help{font-size:.75rem}
+  .reader-zoom{gap:6px;margin-bottom:10px}
+  .reader-controls{display:grid;gap:8px;grid-template-columns:1fr auto 1fr;margin-top:12px;padding:8px}
+  .reader-controls button{min-height:44px;min-width:0;padding:8px}
+  .reader-controls strong{font-size:.78rem;white-space:nowrap}
+  .reader-controls button:last-child:nth-child(4){grid-column:1/-1}
+}

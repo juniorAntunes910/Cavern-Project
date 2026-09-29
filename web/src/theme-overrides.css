@@ -9,3 +9,36 @@
 .profile-preference{align-items:center;border-top:1px solid var(--line);display:flex;justify-content:space-between;margin-top:22px;padding-top:18px}.profile-preference .theme-toggle{margin:0}.profile-note{border-top:1px solid var(--line);margin-top:18px!important;padding-top:14px}
 .monthly-progress{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:36px;padding:22px}.monthly-bars{align-items:end;display:grid;gap:18px;grid-template-columns:repeat(3,1fr);height:190px;margin-top:20px}.monthly-metric{display:grid;gap:8px;height:100%;justify-items:center}.monthly-values{align-items:baseline;display:flex;gap:6px}.monthly-values strong{font-size:1.35rem}.monthly-values span{color:var(--muted);font-size:.75rem}.bar-pair{align-items:end;display:flex;gap:6px;height:130px}.bar-pair i,.bar-pair b{background:var(--purple);border-radius:5px 5px 2px 2px;display:block;width:18px}.bar-pair b{background:var(--line)}.monthly-metric small{color:var(--muted)}.chart-legend{color:var(--muted);display:flex;font-size:.8rem;gap:18px;margin-top:14px}.chart-legend i{border-radius:50%;display:inline-block;height:9px;margin-right:5px;width:9px}.legend-current{background:var(--purple)}.legend-previous{background:var(--line)}
 @media(max-width:700px){.content>header>p:last-child{font-size:.96rem}.home-intro{grid-template-columns:1fr;padding:20px}.home-intro-actions{grid-column:auto}.home-intro-actions>*{width:100%;justify-content:center}.book-import{align-items:stretch;flex-direction:column}.book-import .button{text-align:center}.book-card{padding:18px}.book-card .habit-actions{grid-template-columns:1fr}.book-card .habit-actions>*{width:100%}.stack>.panel:hover{transform:none}}
+
+/* Dense touch layout shared by the browser, PWA and Capacitor APK. */
+@media(max-width:700px){
+  .mobile-topbar{min-height:58px;padding:calc(max(env(safe-area-inset-top, 0px),var(--safe-area-inset-top, 0px)) + 6px) 14px 6px}
+  .content{padding:18px 14px calc(max(env(safe-area-inset-bottom, 0px),var(--safe-area-inset-bottom, 0px)) + 24px)}
+  aside.sidebar{padding-top:calc(max(env(safe-area-inset-top, 0px),var(--safe-area-inset-top, 0px)) + 16px);padding-bottom:calc(max(env(safe-area-inset-bottom, 0px),var(--safe-area-inset-bottom, 0px)) + 18px)}
+  .content>header{margin-bottom:18px}
+  .content>header .eyebrow{font-size:.66rem;margin:0}
+  .content>header h1{font-size:clamp(1.8rem,8vw,2.1rem);line-height:1.12;margin:3px 0 7px;overflow-wrap:anywhere}
+  .content>header>p:last-child{font-size:.88rem;line-height:1.42;margin:0}
+  .panel,.metric,.empty,.activity-chart,.calendar,.monthly-progress{padding:15px}
+  .panel h2{font-size:1.3rem}
+  .form,.stack,.goal-card{gap:10px}
+  .two-columns,.home-grid,.metric-row{gap:12px}
+  .button,button{min-height:44px;padding:10px 12px}
+  .form input,.form select,.form textarea,.goal-edit-form input,.goal-edit-form select{font-size:16px;min-height:44px}
+  .home-intro{gap:12px;margin-bottom:16px;padding:15px}
+  .today-panel{margin-bottom:16px;padding:15px}
+  .today-heading{gap:10px}.today-heading h2{font-size:1.3rem;margin:2px 0 4px}
+  .today-list{gap:7px;margin-top:12px}.today-item{min-height:56px}
+  .fire-journey{gap:10px;margin-bottom:16px;min-height:0;padding:15px}
+  .fire-journey .camp-scene{height:100px}.fire-count{font-size:1.55rem;padding:10px}
+  .log-date{gap:6px;margin:0 0 14px;padding:10px 12px}
+  .habit-create-form>div:first-child h2{font-size:1.3rem;margin:2px 0 4px}
+  .habit-create-form>div:first-child p:last-child{font-size:.86rem}
+  .habit-card{gap:12px;padding:15px}.habit-streak{min-width:72px;padding:7px}
+  .finance-summary{gap:10px;margin-bottom:14px}.finance-summary .metric{padding:13px}.finance-summary .metric strong{font-size:1.35rem}
+  .finance-bottom{gap:14px}.finance-goal,.transaction{gap:10px}
+  .checkin-form{gap:16px;padding:15px}.checkin-form-heading{gap:8px;padding-bottom:12px}
+  .checkin-form-heading p{font-size:.86rem}.checkin-scores{gap:8px}.checkin-score{padding:11px}
+  .checkin-score-heading span{font-size:.76rem}.checkin-date{padding:6px 9px}
+  .book-card{gap:12px;padding:14px}.book-cover{height:82px;width:58px}
+}

@@ -109,13 +109,13 @@ export function Gym() {
           <article className="panel workout-card">
             <div>
               <p className="eyebrow">TREINO SUGERIDO</p>
-              <h2>{plans[0]?.name ?? "Crie seu primeiro treino"}</h2>
+              <h2>{plans[0]?.exercises.length ? plans[0].name : "Crie seu primeiro treino"}</h2>
               <p>{week} treinos concluídos nesta semana</p>
             </div>
             <button
-              onClick={() => (plans[0] ? begin(plans[0]) : setTab("PLANS"))}
+              onClick={() => (plans[0]?.exercises.length ? begin(plans[0]) : setTab("PLANS"))}
             >
-              {plans[0] ? "Iniciar treino" : "Montar treino"}
+              {plans[0]?.exercises.length ? "Iniciar treino" : "Montar treino"}
             </button>
           </article>
         </section>
@@ -184,7 +184,7 @@ function Plans({ onBegin }: { onBegin: (plan: WorkoutPlan) => void }) {
             <button className="subtle" onClick={() => setPlan(item)}>
               Editar
             </button>
-            <button onClick={() => onBegin(item)}>Iniciar</button>
+            <button disabled={item.exercises.length === 0} onClick={() => onBegin(item)}>Iniciar</button>
           </div>
         </article>
       ))}
@@ -413,7 +413,7 @@ function Workout({
           Este treino não tem exercícios. Edite a rotina antes de iniciar.
         </div>
       )}
-      <button className="finish-workout" onClick={onFinish}>
+      <button className="finish-workout" disabled={session.exercises.length === 0} onClick={onFinish}>
         Finalizar treino
       </button>
     </section>

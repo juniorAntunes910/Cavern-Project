@@ -1,1 +1,19 @@
 .shop-balance{color:var(--green)!important;font-size:1.35rem;font-weight:800}.shop-loadout{align-items:center;display:flex;gap:24px;margin-bottom:24px}.mascot-preview{display:none}.shop-loadout-scene,.shop-scene-preview{background:radial-gradient(circle at 70% 28%,color-mix(in srgb,var(--purple) 16%,transparent),transparent 48%),var(--surface2);border:1px solid var(--line);border-radius:16px;overflow:hidden}.shop-loadout-scene{height:150px;width:220px}.shop-scene-preview{height:118px}.shop-loadout-scene .streak-scene,.shop-scene-preview .streak-scene{display:block;height:100%;width:100%}.shop-grid{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr))}.shop-item{display:grid;gap:10px}.shop-item>strong{display:none}.shop-item h2{margin:0}.shop-item p{color:var(--muted);min-height:42px}.shop-item b{color:var(--green)}.achievement-unlocked{border-color:var(--green)}@media(max-width:700px){.shop-grid{grid-template-columns:1fr}.shop-loadout{align-items:flex-start;flex-direction:column}.shop-loadout-scene{width:100%}.shop-scene-preview{height:138px}}
+.shop-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.shop-filters button{font-size:.82rem;padding:9px 13px}.shop-filters button.selected{background:var(--purple);color:#fff}.shop-item .shop-scene-preview{min-width:0}
+@media(max-width:700px){
+  .shop-loadout{align-items:center;display:grid;gap:12px;grid-template-columns:116px minmax(0,1fr);margin-bottom:14px}
+  .shop-loadout-scene{height:94px;width:116px}
+  .shop-loadout h2{font-size:1.05rem;line-height:1.2;margin:4px 0}
+  .shop-loadout p:not(.eyebrow){font-size:.78rem;line-height:1.35;margin:0}
+  .shop-filters{flex-wrap:nowrap;gap:7px;margin:0 -14px 12px;overflow-x:auto;overscroll-behavior-inline:contain;padding:0 14px 6px;scrollbar-width:thin}
+  .shop-filters button{flex:none;min-height:44px;padding:8px 11px;white-space:nowrap}
+  .shop-grid{gap:9px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .shop-item{align-content:start;gap:7px;padding:11px}
+  .shop-item .shop-scene-preview{height:88px}
+  .shop-item h2{font-size:1rem;line-height:1.2;overflow-wrap:anywhere}
+  .shop-item .eyebrow{margin:0;min-height:0}
+  .shop-item p:not(.eyebrow){display:-webkit-box;font-size:.78rem;line-height:1.3;min-height:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .shop-item p:not(.eyebrow){margin:0}
+  .shop-item b{font-size:.78rem}.shop-item button{font-size:.78rem;line-height:1.2;padding:8px;width:100%}
+}
+@media(max-width:340px){.shop-grid{grid-template-columns:1fr}.shop-item .shop-scene-preview{height:110px}}

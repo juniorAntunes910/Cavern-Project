@@ -15,7 +15,7 @@ import { Focus } from "./features/focus/Focus";
 import { AchievementsPage } from "./features/achievements/Achievements";
 import { Shop } from "./features/shop/Shop";
 import { grantReward } from "./features/gamification/rewards/reward.service";
-import { InstallBanner, InstallControl } from "./components/AppInstall";
+import { InstallControl } from "./components/AppInstall";
 import { NotificationSettings } from "./components/NotificationSettings";
 import { getLocalHabitLogs, overallStreak } from "./lib/local-store";
 import { startHabitReminderChecks } from "./lib/notifications";
@@ -23,22 +23,25 @@ import { useLocalRevision } from "./lib/use-local-revision";
 import "./App.css";
 import "./theme-overrides.css";
 import "./reader.css";
+import "./mobile-compact.css";
 
 type Session = Awaited<
   ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>
 >["data"]["session"];
 const nav = [
   ["/", "Início"],
-  ["/cavern", "Caverna"],
-  ["/goals", "Metas"],
   ["/habits", "Hábitos"],
+  ["/goals", "Metas"],
   ["/focus", "Foco"],
+  ["/checkins", "Check-in"],
+];
+const moreNav = [
+  ["/cavern", "Caverna"],
   ["/gym", "Academia"],
   ["/books", "Livros"],
   ["/achievements", "Conquistas"],
   ["/shop", "Loja"],
   ["/finance", "Financeiro"],
-  ["/checkins", "Check-in"],
   ["/profile", "Perfil"],
 ];
 
@@ -65,85 +68,7 @@ export default function App() {
 }
 
 function LocalApp() {
-  const [authenticated, setAuthenticated] = useState(
-    () => localStorage.getItem("cavern.local.authenticated") === "true",
-  );
-  if (!authenticated)
-    return <LocalLogin onSuccess={() => setAuthenticated(true)} />;
-  return (
-    <Shell
-      profile={<LocalProfile onLogout={() => setAuthenticated(false)} />}
-    />
-  );
-}
-
-function LocalLogin({ onSuccess }: { onSuccess: () => void }) {
-  const [user, setUser] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    const credentials: Record<string, string> = {
-      junior_ga_souza: "senha123",
-      denis_dev: "denis_d",
-      deretti: "deretti-lindo",
-      matheus_oliveira: "corithias2026",
-      eichendorf: "30042008",
-    };
-    const normalizedUser = user.trim().toLowerCase();
-    const normalizedPassword = password.trim();
-    if (credentials[normalizedUser] === normalizedPassword) {
-      localStorage.setItem("cavern.local.authenticated", "true");
-      localStorage.setItem("cavern.local.user", normalizedUser);
-      onSuccess();
-    } else setError("Usuário ou senha incorretos.");
-  }
-  return (
-    <main className="auth">
-      <form className="auth-card" onSubmit={submit}>
-        <AuthBrand />
-        <div className="auth-heading">
-          <h1>Entrar no Cavern</h1>
-          <p>
-            Seus dados permanecem protegidos e disponíveis neste dispositivo.
-          </p>
-        </div>
-        <label htmlFor="local-user">
-          Usuário
-          <input
-            id="local-user"
-            required
-            autoComplete="username"
-            placeholder="Digite seu usuário"
-            spellCheck={false}
-            value={user}
-            onChange={(event) => setUser(event.target.value)}
-          />
-        </label>
-        <label htmlFor="local-password">
-          Senha
-          <input
-            id="local-password"
-            required
-            autoComplete="current-password"
-            placeholder="Digite sua senha"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        {error && (
-          <p className="message" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="auth-submit">Entrar</button>
-        <p className="auth-footnote">
-          <span aria-hidden="true" /> Seus dados ficam neste dispositivo
-        </p>
-      </form>
-    </main>
-  );
+  return <Shell profile={<LocalProfile />} />;
 }
 
 function Shell({ profile }: { profile: ReactNode }) {
@@ -234,12 +159,19 @@ function Shell({ profile }: { profile: ReactNode }) {
               {label}
             </NavLink>
           ))}
+          <details className="nav-more">
+            <summary>Mais áreas</summary>
+            {moreNav.map(([to, label]) => (
+              <NavLink key={to} to={to} onClick={() => setMenuOpen(false)}>
+                {label}
+              </NavLink>
+            ))}
+          </details>
         </nav>
         <StreakBadge />
         <ThemeToggle />
       </aside>
       <main className="content">
-        <InstallBanner />
         <Routes>
           <Route path="/" element={<Progress />} />
           <Route path="/cavern" element={<ChallengesPage />} />
@@ -322,7 +254,7 @@ function Profile({ email }: { email: string }) {
     </>
   );
 }
-function LocalProfile({ onLogout }: { onLogout?: () => void }) {
+function LocalProfile() {
   const [name, setName] = useState(
     () => localStorage.getItem("cavern.profile.name") ?? "",
   );
@@ -333,17 +265,12 @@ function LocalProfile({ onLogout }: { onLogout?: () => void }) {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   }
-  function logout() {
-    localStorage.removeItem("cavern.local.authenticated");
-    localStorage.removeItem("cavern.local.user");
-    onLogout?.();
-  }
   return (
     <>
       <header>
         <p className="eyebrow">PREFERÊNCIAS</p>
         <h1>Perfil</h1>
-        <p>Este perfil fica salvo neste dispositivo.</p>
+        <p>Seu espaço local neste dispositivo.</p>
       </header>
       <section className="panel profile-form">
         <form className="form" onSubmit={save}>
@@ -367,12 +294,10 @@ function LocalProfile({ onLogout }: { onLogout?: () => void }) {
           <ThemeToggle />
         </div>
         <p className="profile-note">
-          Hábitos, metas, livros e progresso permanecem disponíveis neste
-          dispositivo, inclusive sem internet.
+          Seus dados ficam neste navegador, inclusive sem internet. O modo local
+          não tem contas separadas nem proteção por senha; quem usa este perfil
+          do navegador pode abrir o Cavern.
         </p>
-        <button className="danger" onClick={logout}>
-          Sair da instalação
-        </button>
       </section>
       <DeviceSettings />
     </>

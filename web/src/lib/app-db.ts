@@ -46,8 +46,14 @@ export async function deleteDatabaseValue(key: string): Promise<void> {
   database.close()
 }
 
+const pendingWrites = new Map<string, Promise<void>>()
 export function persistDatabaseValue<T>(key: string, value: T) {
-  void setDatabaseValue(key, value).catch(error => console.error('Não foi possível persistir os dados locais.', error))
+  const previous = pendingWrites.get(key) ?? Promise.resolve()
+  const next = previous.catch(() => undefined).then(() => setDatabaseValue(key, value))
+  pendingWrites.set(key, next)
+  void next.catch(error => console.error('Não foi possível persistir os dados locais.', error)).finally(() => {
+    if (pendingWrites.get(key) === next) pendingWrites.delete(key)
+  })
 }
 
 export async function initializeLocalDatabase(keys: readonly string[]) {
@@ -55,17 +61,17 @@ export async function initializeLocalDatabase(keys: readonly string[]) {
     const databaseValue = await readDatabaseValue<unknown>(key)
     const legacyValue = localStorage.getItem(key)
 
-    if (databaseValue !== undefined) {
-      localStorage.setItem(key, JSON.stringify(databaseValue))
-      continue
-    }
-
     if (legacyValue !== null) {
       try {
-        await setDatabaseValue(key, JSON.parse(legacyValue) as unknown)
+        const localValue = JSON.parse(legacyValue) as unknown
+        if (databaseValue === undefined || JSON.stringify(databaseValue) !== legacyValue) {
+          await setDatabaseValue(key, localValue).catch(error => console.error(`Não foi possível sincronizar ${key} com o IndexedDB.`, error))
+        }
+        continue
       } catch (error) {
-        console.error(`Não foi possível migrar ${key} para o IndexedDB.`, error)
+        console.error(`Dados locais inválidos para ${key}; tentando restaurar do IndexedDB.`, error)
       }
     }
+    if (databaseValue !== undefined) localStorage.setItem(key, JSON.stringify(databaseValue))
   }
 }
