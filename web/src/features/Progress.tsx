@@ -93,18 +93,8 @@ export function Progress() {
       </section>
       {challenge && <CurrentCavern challenge={challenge} />}
       <FireJourney streak={streak} />
-      <div className="progress-actions">
-        <NavLink className="button subtle" to="/focus">
-          Iniciar foco
-        </NavLink>
-        <NavLink className="button subtle" to="/checkins">
-          Fazer check-in
-        </NavLink>
-        <NavLink className="button subtle" to="/cavern">
-          {challenge ? "Continuar Caverna" : "Explorar Caverna"}
-        </NavLink>
-      </div>
-      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && <><section className="visual-summary">
+      <div className="progress-actions"><NavLink className="button subtle" to={challenge ? "/cavern" : habits.length ? "/checkins" : "/habits"}>{challenge ? "Continuar Caverna" : habits.length ? "Fazer check-in" : "Criar primeiro hábito"}</NavLink></div>
+      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && <details className="progress-details"><summary>Ver histórico e estatísticas</summary><section className="visual-summary">
         <ActivityChart values={chart} />
       </section>
       <MonthlyComparison metrics={metrics} />
@@ -114,7 +104,7 @@ export function Progress() {
           <h2>{monthLabel()}</h2>
         </div>
         <Calendar activeDates={active} />
-      </section></>}
+      </section></details>}
     </>
   );
 }

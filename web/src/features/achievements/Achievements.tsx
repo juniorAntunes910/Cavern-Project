@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { getLocalAchievements, grantLocalReward, unlockLocalAchievement } from '../../lib/local-store'
+import { getLocalAchievements } from '../../lib/local-store'
 import { useLocalRevision } from '../../lib/use-local-revision'
 import { achievements, type Achievement } from './domain/achievement'
-import { evaluateAchievements, formatAchievementProgress } from './services/achievement.service'
+import { formatAchievementProgress } from './services/achievement.service'
 import './achievements.css'
 
 const rarityLabels: Record<Achievement['rarity'], string> = { COMMON: 'Comum', RARE: 'Rara', EPIC: 'Épica', LEGENDARY: 'Lendária' }
@@ -11,11 +11,6 @@ const categoryLabels: Record<Achievement['category'], string> = { STREAK: 'Sequ�
 export function AchievementsPage() {
   useLocalRevision()
   const [selected, setSelected] = useState<Achievement | null>(null)
-  useEffect(() => {
-    evaluateAchievements().forEach(item => {
-      if (unlockLocalAchievement(item.id)) grantLocalReward('achievement', item.id, item.rewardXp, item.rewardEmbers, item.title)
-    })
-  }, [])
   const unlocked = new Set(getLocalAchievements().map(item => item.id))
   const secret = achievements.find(item => item.hidden)
   const regular = achievements.filter(item => !item.hidden)

@@ -3,6 +3,8 @@ import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, g
 import { getCompletedWorkoutCount } from '../../gym/services/gym.service'
 import type { Challenge, ChallengeProgress, ChallengeRule, ChallengeScoreCalculator, RuleProgress } from '../domain/challenge'
 
+export const MINIMUM_CHALLENGE_SCORE = 70
+
 export function calculateChallengeProgress(challenge: Challenge, date = today()): ChallengeProgress {
   const currentDay = Math.max(0, Math.min(challenge.durationDays, daysBetween(challenge.startDate, date) + 1))
   const datedRules = challenge.rules.filter(rule => rule.frequency === 'DAILY').map(rule => ruleProgress(challenge, rule, date, date))
@@ -24,6 +26,7 @@ export function calculateChallengeProgress(challenge: Challenge, date = today())
 }
 
 export const defaultChallengeScoreCalculator: ChallengeScoreCalculator = { calculate: (_challenge, progress) => progress.overall }
+export function canCompleteChallenge(challenge: Challenge, progress = calculateChallengeProgress(challenge)) { return progress.daysRemaining === 0 && defaultChallengeScoreCalculator.calculate(challenge, progress) >= MINIMUM_CHALLENGE_SCORE }
 function ruleProgress(challenge: Challenge, rule: ChallengeRule, from: string, to: string): RuleProgress { const current = valueFor(challenge, rule, from, to); return { rule, target: rule.target, current, completed: current >= rule.target } }
 function valueFor(challenge: Challenge, rule: ChallengeRule, from: string, to: string) {
   const range = (date: string) => date >= from && date <= to && date >= challenge.startDate && date <= challenge.endDate

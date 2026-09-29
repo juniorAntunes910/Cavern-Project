@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addLocalFocusSession, finishLocalFocusSession, getLocalFocusSessions, getLocalGoals, getLocalHabits, updateLocalFocusSession } from '../../lib/local-store'
+import { addLocalFocusSession, finishLocalFocusSession, getLocalFocusSessions, getLocalGoals, getLocalHabits, MINIMUM_FOCUS_SECONDS, updateLocalFocusSession } from '../../lib/local-store'
 import { getChallenges } from '../challenges/services/challenge.repository'
 
 export function Focus() {
@@ -9,6 +9,7 @@ export function Focus() {
   const [challengeId, setChallengeId] = useState('')
   const [goalId, setGoalId] = useState('')
   const [habitId, setHabitId] = useState('')
+  const [message, setMessage] = useState('')
   const [, tick] = useState(0)
 
   useEffect(() => {
@@ -39,7 +40,8 @@ export function Focus() {
   }
   function finish() {
     if (!active) return
-    finishLocalFocusSession(active.id)
+    const result = finishLocalFocusSession(active.id)
+    if (result && !result.valid) setMessage(`Sessões com menos de ${Math.floor(MINIMUM_FOCUS_SECONDS / 60)} minutos não entram no histórico.`)
     refresh()
   }
   function cancel() {
@@ -54,7 +56,8 @@ export function Focus() {
   const completed = sessions.filter(item => item.status === 'completed').slice(0, 8)
 
   return <>
-    <header><p className="eyebrow">ATENÇÃO</p><h1>Foco</h1><p>Comece uma sessão agora. Você pode relacioná-la a uma meta quando quiser.</p></header>
+    <header><p className="eyebrow">ATENÇÃO</p><h1>Foco</h1><p>Comece uma sessão agora. Sessões de pelo menos {Math.floor(MINIMUM_FOCUS_SECONDS / 60)} minutos entram no seu histórico.</p></header>
+    {message && <p className="action-feedback" role="status">{message}</p>}
     <section className="panel focus-timer">
       <p className="eyebrow">{active?.status === 'active' ? 'EM FOCO' : active?.status === 'paused' ? 'PAUSADO' : 'PRONTO'}</p>
       <strong>{formatSeconds(seconds)}</strong>

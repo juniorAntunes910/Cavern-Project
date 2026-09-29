@@ -192,3 +192,17 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,s
   .goal-edit-form .date-pair,.habit-edit-form .goal-edit{grid-template-columns:1fr}
   .finance-summary.no-btc{grid-template-columns:1fr}
 }
+
+/* Purposeful motion: acknowledge progress without delaying interaction. */
+.route-view{animation:route-enter .24s ease-out both}
+.progress-track>i{transition:width .42s cubic-bezier(.2,.8,.2,1)}
+.campfire i{animation:fire-flicker 1.8s ease-in-out infinite alternate}
+.campfire b{animation:fire-flicker 1.35s ease-in-out infinite alternate-reverse}
+.campfire em{animation:fire-flicker .95s ease-in-out infinite alternate}
+.reward-toast{align-items:center;animation:reward-enter .32s cubic-bezier(.2,.9,.25,1.2) both;background:color-mix(in srgb,var(--surface) 90%,#2a163d);border:1px solid color-mix(in srgb,var(--purple) 62%,var(--line));border-radius:14px;bottom:calc(env(safe-area-inset-bottom) + 22px);box-shadow:0 18px 48px rgba(0,0,0,.34);display:flex;gap:12px;max-width:min(420px,calc(100vw - 32px));padding:12px 16px;position:fixed;right:22px;z-index:30}
+.reward-toast>span{align-items:center;background:var(--purple);border-radius:50%;color:#fff;display:grid;font-size:1.1rem;height:34px;place-items:center;width:34px}.reward-toast div{display:grid;gap:2px}.reward-toast small{color:var(--muted)}
+@keyframes route-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fire-flicker{from{filter:brightness(.92);transform:rotate(42deg) scale(.94,.98)}to{filter:brightness(1.15);transform:rotate(48deg) scale(1.06,1.04)}}
+@keyframes reward-enter{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){.reward-toast{bottom:calc(env(safe-area-inset-bottom) + 14px);left:16px;right:16px;max-width:none}}
+@media(prefers-reduced-motion:reduce){.route-view,.campfire i,.campfire b,.campfire em,.reward-toast{animation:none}.progress-track>i{transition:none}}

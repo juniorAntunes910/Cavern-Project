@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { allowedEmail, supabase, supabaseConfigured } from "./lib/supabase";
 import { Goals } from "./features/Goals";
 import { Habits } from "./features/Habits";
@@ -17,9 +17,11 @@ import { Shop } from "./features/shop/Shop";
 import { grantReward } from "./features/gamification/rewards/reward.service";
 import { InstallControl } from "./components/AppInstall";
 import { NotificationSettings } from "./components/NotificationSettings";
-import { getLocalHabitLogs, overallStreak } from "./lib/local-store";
+import { ProfileSettings } from "./features/ProfileSettings";
+import { addLocalTimelineEvent, getLocalHabitLogs, getLocalRewardTransactions, grantLocalReward, overallStreak, unlockLocalAchievement } from "./lib/local-store";
 import { startHabitReminderChecks } from "./lib/notifications";
 import { useLocalRevision } from "./lib/use-local-revision";
+import { evaluateAchievements } from "./features/achievements/services/achievement.service";
 import "./App.css";
 import "./theme-overrides.css";
 import "./reader.css";
@@ -30,13 +32,13 @@ type Session = Awaited<
 >["data"]["session"];
 const nav = [
   ["/", "Início"],
+  ["/cavern", "Caverna"],
   ["/habits", "Hábitos"],
   ["/goals", "Metas"],
   ["/focus", "Foco"],
   ["/checkins", "Check-in"],
 ];
 const moreNav = [
-  ["/cavern", "Caverna"],
   ["/gym", "Academia"],
   ["/books", "Livros"],
   ["/achievements", "Conquistas"],
@@ -73,7 +75,25 @@ function LocalApp() {
 
 function Shell({ profile }: { profile: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
   useEffect(() => startHabitReminderChecks(), []);
+  useEffect(() => {
+    let reconciling = false;
+    const reconcileAchievements = () => {
+      if (reconciling) return;
+      reconciling = true;
+      for (const achievement of evaluateAchievements()) {
+        if (unlockLocalAchievement(achievement.id)) {
+          grantLocalReward("achievement", achievement.id, achievement.rewardXp, achievement.rewardEmbers, achievement.title);
+          addLocalTimelineEvent({ type: "achievement", title: `${achievement.icon} ${achievement.title}`, description: achievement.description });
+        }
+      }
+      reconciling = false;
+    };
+    reconcileAchievements();
+    window.addEventListener("cavern:data-changed", reconcileAchievements);
+    return () => window.removeEventListener("cavern:data-changed", reconcileAchievements);
+  }, []);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const grantTestEmbers = (event: KeyboardEvent) => {
@@ -172,6 +192,7 @@ function Shell({ profile }: { profile: ReactNode }) {
         <ThemeToggle />
       </aside>
       <main className="content">
+        <div className="route-view" key={location.pathname}>
         <Routes>
           <Route path="/" element={<Progress />} />
           <Route path="/cavern" element={<ChallengesPage />} />
@@ -189,9 +210,31 @@ function Shell({ profile }: { profile: ReactNode }) {
           <Route path="/profile" element={profile} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </div>
       </main>
+      <RewardFeedback />
     </div>
   );
+}
+
+function RewardFeedback() {
+  const shownId = useRef(getLocalRewardTransactions()[0]?.id ?? "");
+  const timer = useRef<number | undefined>(undefined);
+  const [reward, setReward] = useState<ReturnType<typeof getLocalRewardTransactions>[number] | null>(null);
+  useEffect(() => {
+    const showLatestReward = () => {
+      const latest = getLocalRewardTransactions()[0];
+      if (!latest || latest.id === shownId.current) return;
+      shownId.current = latest.id;
+      window.clearTimeout(timer.current);
+      setReward(latest);
+      timer.current = window.setTimeout(() => setReward(null), 4200);
+    };
+    window.addEventListener("cavern:data-changed", showLatestReward);
+    return () => { window.removeEventListener("cavern:data-changed", showLatestReward); window.clearTimeout(timer.current); };
+  }, []);
+  if (!reward) return null;
+  return <div className="reward-toast" role="status"><span aria-hidden="true">✦</span><div><strong>Recompensa recebida</strong><small>{reward.title} · +{reward.xp} XP · +{reward.embers} brasas</small></div></div>;
 }
 
 function ThemeToggle() {
@@ -240,68 +283,10 @@ function PrivateAccessDenied() {
   );
 }
 function Profile({ email }: { email: string }) {
-  return (
-    <>
-      <header>
-        <p className="eyebrow">CAVERN</p>
-        <h1>Perfil</h1>
-      </header>
-      <section className="panel">
-        <p>{email}</p>
-        <button onClick={() => void supabase?.auth.signOut()}>Sair</button>
-      </section>
-      <DeviceSettings />
-    </>
-  );
+  return <><ProfileSettings email={email} onSignOut={() => void supabase?.auth.signOut()} /><DeviceSettings /></>;
 }
 function LocalProfile() {
-  const [name, setName] = useState(
-    () => localStorage.getItem("cavern.profile.name") ?? "",
-  );
-  const [saved, setSaved] = useState(false);
-  function save(event: FormEvent) {
-    event.preventDefault();
-    localStorage.setItem("cavern.profile.name", name.trim());
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
-  }
-  return (
-    <>
-      <header>
-        <p className="eyebrow">PREFERÊNCIAS</p>
-        <h1>Perfil</h1>
-        <p>Seu espaço local neste dispositivo.</p>
-      </header>
-      <section className="panel profile-form">
-        <form className="form" onSubmit={save}>
-          <label>
-            Como quer ser chamado?
-            <input
-              value={name}
-              placeholder="Seu nome"
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <button>Salvar perfil</button>
-          {saved && (
-            <p className="saved-message" role="status">
-              Perfil salvo.
-            </p>
-          )}
-        </form>
-        <div className="profile-preference">
-          <span>Tema da interface</span>
-          <ThemeToggle />
-        </div>
-        <p className="profile-note">
-          Seus dados ficam neste navegador, inclusive sem internet. O modo local
-          não tem contas separadas nem proteção por senha; quem usa este perfil
-          do navegador pode abrir o Cavern.
-        </p>
-      </section>
-      <DeviceSettings />
-    </>
-  );
+  return <><ProfileSettings /><DeviceSettings /></>;
 }
 
 function DeviceSettings() {

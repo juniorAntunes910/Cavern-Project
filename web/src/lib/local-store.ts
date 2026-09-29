@@ -1,4 +1,4 @@
-import { deleteDatabaseValue, persistDatabaseValue } from './app-db'
+import { deleteDatabaseValue, persistDatabaseValue, readDatabaseValue, setDatabaseValue } from './app-db'
 import { REWARDS, type RewardType } from '../features/gamification/rewards/reward-config'
 import { createId } from './id'
 
@@ -25,8 +25,10 @@ export type LocalAchievement = { id: string; unlocked_at: string }
 export type LocalRewardTransaction = { id: string; source_type: string; source_id: string; xp: number; embers: number; title: string; created_at: string }
 export type LocalInventoryItem = { item_id: string; acquired_at: string; acquisition_type: 'PURCHASE' | 'ACHIEVEMENT' | 'CHALLENGE' | 'SPECIAL' }
 export type LocalCustomization = { fire_skin_id: string; mascot_id: string; head_item_id?: string; body_item_id?: string; accessory_item_id?: string; effect_item_id?: string }
+export type LocalProfile = { name: string; bio: string; focus: 'discipline' | 'reading' | 'fitness' | 'finance' | 'custom'; reminderTime: string; activeDays: number[]; weekStartsOn: 'monday' | 'sunday'; motion: 'full' | 'reduced' }
+export const MINIMUM_FOCUS_SECONDS = 5 * 60
 
-export const localDataKeys = { goals: 'cavern.local.goals.v2', habits: 'cavern.local.habits.v1', habitLogs: 'cavern.local.habit-logs.v1', goalHabitLinks: 'cavern.local.goal-habit-links.v1', books: 'cavern.local.books.v1', sessions: 'cavern.local.reading-sessions.v1', checkins: 'cavern.local.checkins.v1', workouts: 'cavern.local.workouts.v1', financeTransactions: 'cavern.local.finance-transactions.v1', financialGoals: 'cavern.local.financial-goals.v1', challenges: 'cavern.local.challenges.v1', challengeRuleLogs: 'cavern.local.challenge-rule-logs.v1', focusSessions: 'cavern.local.focus-sessions.v1', xpLedger: 'cavern.local.xp-ledger.v1', rewards: 'cavern.local.reward-transactions.v1', inventory: 'cavern.local.inventory.v1', customization: 'cavern.local.customization.v1', timeline: 'cavern.local.timeline.v1', achievements: 'cavern.local.achievements.v1' } as const
+export const localDataKeys = { goals: 'cavern.local.goals.v2', habits: 'cavern.local.habits.v1', habitLogs: 'cavern.local.habit-logs.v1', goalHabitLinks: 'cavern.local.goal-habit-links.v1', books: 'cavern.local.books.v1', sessions: 'cavern.local.reading-sessions.v1', checkins: 'cavern.local.checkins.v1', workouts: 'cavern.local.workouts.v1', financeTransactions: 'cavern.local.finance-transactions.v1', financialGoals: 'cavern.local.financial-goals.v1', challenges: 'cavern.local.challenges.v1', challengeRuleLogs: 'cavern.local.challenge-rule-logs.v1', focusSessions: 'cavern.local.focus-sessions.v1', xpLedger: 'cavern.local.xp-ledger.v1', rewards: 'cavern.local.reward-transactions.v1', inventory: 'cavern.local.inventory.v1', customization: 'cavern.local.customization.v1', timeline: 'cavern.local.timeline.v1', achievements: 'cavern.local.achievements.v1', profile: 'cavern.local.profile.v1' } as const
 const keys = localDataKeys
 const read = <T>(key: string): T[] => { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) as T[] : [] } catch { return [] } }
 const write = <T>(key: string, value: T[]) => {
@@ -35,6 +37,13 @@ const write = <T>(key: string, value: T[]) => {
   window.dispatchEvent(new Event('cavern:data-changed'))
 }
 const id = createId
+
+const defaultProfile: LocalProfile = { name: '', bio: '', focus: 'discipline', reminderTime: '20:00', activeDays: [1, 2, 3, 4, 5, 6, 0], weekStartsOn: 'monday', motion: 'full' }
+const avatarKey = 'cavern.profile.avatar.v1'
+export function getLocalProfile(): LocalProfile { try { return { ...defaultProfile, ...JSON.parse(localStorage.getItem(keys.profile) ?? '{}') } } catch { return defaultProfile } }
+export function saveLocalProfile(changes: Partial<LocalProfile>) { const next = { ...getLocalProfile(), ...changes }; localStorage.setItem(keys.profile, JSON.stringify(next)); persistDatabaseValue(keys.profile, next); document.documentElement.dataset.motion = next.motion; window.dispatchEvent(new Event('cavern:data-changed')); return next }
+export async function getProfileAvatar() { return readDatabaseValue<string>(avatarKey) }
+export async function saveProfileAvatar(avatar: string | null) { if (avatar) await setDatabaseValue(avatarKey, avatar); else await deleteDatabaseValue(avatarKey); window.dispatchEvent(new Event('cavern:data-changed')) }
 
 export function getLocalGoals() { return read<LocalGoal & { cavern_id?: string | null }>(keys.goals).map(({ cavern_id: _cavernId, ...goal }) => ({ ...goal, metric: goal.metric ?? 'custom', manual_progress: goal.manual_progress ?? 0, start_date: goal.start_date ?? today(), end_date: goal.end_date ?? today() })) }
 export function addLocalGoal(goal: Omit<LocalGoal, 'id' | 'status' | 'manual_progress'>) { const created = { ...goal, id: id(), status: 'active' as const, manual_progress: 0 }; const next = [created, ...getLocalGoals()]; write(keys.goals, next); getLocalHabits().filter(habit => habitMatchesGoal(habit, created)).forEach(habit => setHabitGoalLinks(habit.id, [...new Set([...getHabitGoalIds(habit.id), created.id])])); return next }
@@ -65,7 +74,7 @@ export function clearHabitLog(habitId: string, date: string) { const current = g
 export function getLocalFocusSessions() { return read<LocalFocusSession>(keys.focusSessions).sort((a, b) => b.started_at.localeCompare(a.started_at)) }
 export function addLocalFocusSession(session: Omit<LocalFocusSession, 'id' | 'status' | 'ended_at' | 'duration_seconds' | 'accumulated_seconds'>) { const created: LocalFocusSession = { ...session, id: id(), status: 'active', ended_at: null, duration_seconds: 0, accumulated_seconds: 0 }; const next = [created, ...getLocalFocusSessions()]; write(keys.focusSessions, next); return created }
 export function updateLocalFocusSession(sessionId: string, changes: Partial<LocalFocusSession>) { const next = getLocalFocusSessions().map(session => session.id === sessionId ? { ...session, ...changes } : session); write(keys.focusSessions, next); return next }
-export function finishLocalFocusSession(sessionId: string) { const current = getLocalFocusSessions().find(session => session.id === sessionId); if (!current) return undefined; const elapsed = current.status === 'active' ? Math.max(0, Math.round((Date.now() - new Date(current.resumed_at ?? current.started_at).getTime()) / 1000)) : 0; const total = current.accumulated_seconds + elapsed; updateLocalFocusSession(sessionId, { status: 'completed', resumed_at: null, ended_at: new Date().toISOString(), duration_seconds: total, accumulated_seconds: total }); if (total >= 1800) grantConfiguredReward('FOCUS_30_MINUTES', 'focus', sessionId, 'Foco concluído'); addLocalTimelineEvent({ type: 'focus', title: 'Foco concluído', description: `${Math.floor(total / 60)} minutos de foco` }); return total }
+export function finishLocalFocusSession(sessionId: string) { const current = getLocalFocusSessions().find(session => session.id === sessionId); if (!current) return undefined; const elapsed = current.status === 'active' ? Math.max(0, Math.round((Date.now() - new Date(current.resumed_at ?? current.started_at).getTime()) / 1000)) : 0; const total = current.accumulated_seconds + elapsed; const valid = total >= MINIMUM_FOCUS_SECONDS; updateLocalFocusSession(sessionId, { status: valid ? 'completed' : 'cancelled', resumed_at: null, ended_at: new Date().toISOString(), duration_seconds: total, accumulated_seconds: total }); if (!valid) return { total, valid }; if (total >= 1800) grantConfiguredReward('FOCUS_30_MINUTES', 'focus', sessionId, 'Foco concluído'); addLocalTimelineEvent({ type: 'focus', title: 'Foco concluído', description: `${Math.floor(total / 60)} minutos de foco` }); return { total, valid } }
 
 export function getLocalXpEntries() { return read<LocalXpEntry>(keys.xpLedger) }
 export function awardLocalXp(sourceKey: string, points: number, title: string) { if (points <= 0 || getLocalXpEntries().some(entry => entry.source_key === sourceKey)) return false; write(keys.xpLedger, [{ id: id(), source_key: sourceKey, points, title, created_at: new Date().toISOString() }, ...getLocalXpEntries()]); return true }

@@ -1,18 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   getLocalCustomization,
   getLocalInventory,
-  grantLocalReward,
   saveLocalCustomization,
-  unlockLocalAchievement,
   type LocalCustomization,
 } from "../../lib/local-store";
 import { getBalance } from "../gamification/rewards/reward.service";
 import { shopItems, type ShopItem, type ShopItemType } from "./domain/shop";
 import { buyItem, ownsItem } from "./services/shop.service";
 import { StreakScene } from "../Progress";
-import { evaluateAchievements } from "../achievements/services/achievement.service";
 import { useLocalRevision } from "../../lib/use-local-revision";
 import "../challenges/challenges.css";
 import "./shop.css";
@@ -46,13 +43,6 @@ export function Shop() {
   const [category, setCategory] = useState<ShopItemType | 'ALL'>('ALL');
   const [message, setMessage] = useState("");
   const [pendingPurchase, setPendingPurchase] = useState<ShopItem | null>(null);
-  useEffect(() => {
-    for (const achievement of evaluateAchievements()) {
-      if (unlockLocalAchievement(achievement.id)) {
-        grantLocalReward('achievement', achievement.id, achievement.rewardXp, achievement.rewardEmbers, achievement.title);
-      }
-    }
-  }, []);
   const balance = getBalance();
   const loadout = getLocalCustomization();
   function confirmPurchase() {
