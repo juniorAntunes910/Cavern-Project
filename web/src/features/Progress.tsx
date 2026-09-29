@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import "./progress.css";
 import {
@@ -24,6 +25,7 @@ const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 export function Progress() {
   useLocalRevision();
+  const [showHistory, setShowHistory] = useState(false);
   const logs = getLocalHabitLogs();
   const habits = getLocalHabits().filter((habit) => habit.active);
   const goals = getLocalGoals().filter((goal) => goal.status === "active");
@@ -94,17 +96,38 @@ export function Progress() {
       {challenge && <CurrentCavern challenge={challenge} />}
       <FireJourney streak={streak} />
       <div className="progress-actions"><NavLink className="button subtle" to={challenge ? "/cavern" : habits.length ? "/checkins" : "/habits"}>{challenge ? "Continuar Caverna" : habits.length ? "Fazer check-in" : "Criar primeiro hábito"}</NavLink></div>
-      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && <details className="progress-details"><summary>Ver histórico e estatísticas</summary><section className="visual-summary">
-        <ActivityChart values={chart} />
-      </section>
-      <MonthlyComparison metrics={metrics} />
-      <section className="calendar-section">
-        <div>
-          <p className="eyebrow">CALENDÁRIO</p>
-          <h2>{monthLabel()}</h2>
-        </div>
-        <Calendar activeDates={active} />
-      </section></details>}
+      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && (
+        <section className="progress-details" aria-label="Histórico e estatísticas">
+          <button
+            className="progress-details-toggle"
+            type="button"
+            aria-expanded={showHistory}
+            aria-controls="progress-history-content"
+            onClick={() => setShowHistory((isOpen) => !isOpen)}
+          >
+            <span>
+              <strong>{showHistory ? "Ocultar histórico e estatísticas" : "Ver histórico e estatísticas"}</strong>
+              <small>Atividade, comparativo mensal e calendário</small>
+            </span>
+            <span className="progress-details-icon" aria-hidden="true">{showHistory ? "−" : "+"}</span>
+          </button>
+          {showHistory && (
+            <div className="progress-details-content" id="progress-history-content">
+              <section className="visual-summary">
+                <ActivityChart values={chart} />
+              </section>
+              <MonthlyComparison metrics={metrics} />
+              <section className="calendar-section">
+                <div>
+                  <p className="eyebrow">CALENDÁRIO</p>
+                  <h2>{monthLabel()}</h2>
+                </div>
+                <Calendar activeDates={active} />
+              </section>
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }
