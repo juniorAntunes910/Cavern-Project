@@ -31,6 +31,10 @@ O **Cavern** é um aplicativo pessoal para transformar intenção em prática. A
 
 ## Tecnologias
 
+### Orientador de IA local
+
+A IA lê as categorias escolhidas diretamente dos dados locais do aparelho. No APK Android, celulares compatíveis podem usar Gemini Nano para conversa generativa offline depois que o modelo for baixado. Todos os celulares continuam com a análise local de métricas. Veja [como funciona e como gerar o APK](docs/ai.md).
+
 O aplicativo em evolução está em [`web/`](web/) e usa **React 19**, **TypeScript**, **Vite**, **React Router**, **IndexedDB**, **PWA**, **Capacitor** e **Electron**. O diretório [`lib/`](lib/) preserva a fundação Flutter anterior; o schema do banco está em [`supabase/migrations/`](supabase/migrations/).
 
 ## Começar a desenvolver
@@ -118,6 +122,8 @@ Cavern-Project/
 - [Arquitetura](docs/architecture.md)
 - [Banco de dados](docs/database.md)
 - [Sincronização](docs/sync.md)
+- [IA no gerador de Caverna](docs/ai.md)
+- [Plano do orientador de bem-estar com IA](docs/ai-wellbeing-plan.md)
 - [Regras de produto](docs/product-rules.md)
 - [Uso privado](docs/private-use.md)
 

@@ -18,6 +18,7 @@ import { grantReward } from "./features/gamification/rewards/reward.service";
 import { InstallControl } from "./components/AppInstall";
 import { NotificationSettings } from "./components/NotificationSettings";
 import { ProfileSettings } from "./features/ProfileSettings";
+import { AiAdvisorPage } from "./features/advisor/pages/AiAdvisorPage";
 import { addLocalTimelineEvent, getLocalHabitLogs, getLocalRewardTransactions, grantLocalReward, overallStreak, unlockLocalAchievement } from "./lib/local-store";
 import { startHabitReminderChecks } from "./lib/notifications";
 import { useLocalRevision } from "./lib/use-local-revision";
@@ -31,6 +32,7 @@ type Session = Awaited<
   ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>
 >["data"]["session"];
 const nav = [
+  ["/advisor", "Assistente IA"],
   ["/", "Início"],
   ["/cavern", "Caverna"],
   ["/habits", "Hábitos"],
@@ -194,6 +196,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       <main className="content">
         <div className="route-view" key={location.pathname}>
         <Routes>
+          <Route path="/advisor" element={<AiAdvisorPage />} />
           <Route path="/" element={<Progress />} />
           <Route path="/cavern" element={<ChallengesPage />} />
           <Route path="/goals" element={<Goals />} />

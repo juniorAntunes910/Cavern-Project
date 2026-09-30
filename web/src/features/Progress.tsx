@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import "./progress.css";
 import {
@@ -25,12 +25,16 @@ const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 export function Progress() {
   useLocalRevision();
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(() =>
+    window.matchMedia("(max-width: 700px)").matches,
+  );
   const logs = getLocalHabitLogs();
   const habits = getLocalHabits().filter((habit) => habit.active);
   const goals = getLocalGoals().filter((goal) => goal.status === "active");
   const sessions = getLocalReadingSessions();
   const checkins = getLocalCheckIns();
+  const hasProgressData =
+    logs.length > 0 || sessions.length > 0 || checkins.length > 0;
   const challenge = getChallenges().find((item) => item.status === "ACTIVE");
   const now = new Date();
   const current = monthRange(now.getFullYear(), now.getMonth());
@@ -62,6 +66,14 @@ export function Progress() {
       previous: countIn(checkins, previous),
     },
   ];
+  useEffect(() => {
+    const mobileViewport = window.matchMedia("(max-width: 700px)");
+    const updateHistoryVisibility = (event: MediaQueryListEvent) =>
+      setShowHistory(event.matches);
+    mobileViewport.addEventListener("change", updateHistoryVisibility);
+    return () =>
+      mobileViewport.removeEventListener("change", updateHistoryVisibility);
+  }, []);
   return (
     <>
       <header>
@@ -95,9 +107,8 @@ export function Progress() {
       </section>
       {challenge && <CurrentCavern challenge={challenge} />}
       <FireJourney streak={streak} />
-      <div className="progress-actions"><NavLink className="button subtle" to={challenge ? "/cavern" : habits.length ? "/checkins" : "/habits"}>{challenge ? "Continuar Caverna" : habits.length ? "Fazer check-in" : "Criar primeiro hábito"}</NavLink></div>
-      {(logs.length > 0 || sessions.length > 0 || checkins.length > 0) && (
-        <section className="progress-details" aria-label="Histórico e estatísticas">
+      <div className="progress-actions"><NavLink className="button subtle" to={challenge ? "/cavern" : habits.length ? "/checkins" : "/habits"}>{challenge ? "Continuar Caverna" : habits.length ? "Fazer check-in" : "Criar primeiro hábito"}</NavLink><NavLink className="button" to="/advisor">Conversar com a IA</NavLink></div>
+      <section className="progress-details" aria-label="Histórico e estatísticas">
           <button
             className="progress-details-toggle"
             type="button"
@@ -111,7 +122,7 @@ export function Progress() {
             </span>
             <span className="progress-details-icon" aria-hidden="true">{showHistory ? "−" : "+"}</span>
           </button>
-          {showHistory && (
+          {showHistory && hasProgressData && (
             <div className="progress-details-content" id="progress-history-content">
               <section className="visual-summary">
                 <ActivityChart values={chart} />
@@ -126,8 +137,14 @@ export function Progress() {
               </section>
             </div>
           )}
+          {showHistory && !hasProgressData && (
+            <div className="progress-empty" id="progress-history-content">
+              <strong>Seu progresso aparecerá aqui.</strong>
+              <p>Conclua um hábito, registre uma leitura ou faça um check-in para iniciar os gráficos.</p>
+              <NavLink className="button subtle" to="/habits">Criar primeiro hábito</NavLink>
+            </div>
+          )}
         </section>
-      )}
     </>
   );
 }
@@ -477,32 +494,36 @@ function ActivityChart({
         </div>
         <span>hábitos concluídos</span>
       </div>
-      <svg
-        role="img"
-        aria-label="Gráfico de hábitos concluídos nos últimos catorze dias"
-        viewBox={`0 0 ${width} 210`}
-      >
-        <line x1="0" x2={width} y1="170" y2="170" className="chart-axis" />
-        {values.map((item, index) => {
-          const h = (item.amount / max) * 132;
-          const x = gap + index * (barWidth + gap);
-          return (
-            <g key={item.date}>
-              <rect
-                className="chart-bar"
-                x={x}
-                y={170 - h}
-                width={barWidth}
-                height={h}
-                rx="4"
-              />
-              <text x={x + barWidth / 2} y="194" textAnchor="middle">
-                {shortDay(item.date)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      <div className="activity-chart-scroll" role="region" aria-label="Navegação horizontal do gráfico" tabIndex={0}>
+        <svg
+          role="img"
+          aria-label="Gráfico de hábitos concluídos nos últimos catorze dias"
+          viewBox={`0 0 ${width} 210`}
+        >
+          <line x1="0" x2={width} y1="170" y2="170" className="chart-axis" />
+          {values.map((item, index) => {
+            const h = (item.amount / max) * 132;
+            const x = gap + index * (barWidth + gap);
+            return (
+              <g key={item.date}>
+                <rect
+                  className="chart-bar"
+                  x={x}
+                  y={170 - h}
+                  width={barWidth}
+                  height={h}
+                  rx="4"
+                >
+                  <title>{item.amount} hábito(s) em {item.date}</title>
+                </rect>
+                <text x={x + barWidth / 2} y="194" textAnchor="middle">
+                  {shortDay(item.date)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
     </article>
   );
 }

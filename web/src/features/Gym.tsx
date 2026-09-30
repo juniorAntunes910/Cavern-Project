@@ -153,8 +153,9 @@ function Plans({ onBegin }: { onBegin: (plan: WorkoutPlan) => void }) {
     <section className="stack">
       <article className="panel">
         <p className="eyebrow">MEUS TREINOS</p>
-        <div className="inline-form">
+        <div className="inline-form gym-input-row">
           <input
+            aria-label="Nome do treino"
             value={name}
             placeholder="Ex.: Push A"
             onChange={(event) => setName(event.target.value)}
