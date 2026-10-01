@@ -62,9 +62,10 @@ export function revokeAiDataConsent() {
   window.dispatchEvent(new Event('cavern:data-changed'))
 }
 
-export function buildAiContext(categories: AiDataCategory[]) {
+export function buildAiContext(categories: AiDataCategory[], periodDays = aiPeriodDays) {
   const selected = new Set(categories.filter(item => allowed.has(item)))
-  const from = shift(today(), -(aiPeriodDays - 1))
+  const days = Math.min(aiPeriodDays, Math.max(1, Math.trunc(periodDays)))
+  const from = shift(today(), -(days - 1))
   const habits = getLocalHabits()
   const books = getLocalBooks()
   const exercises = getExercises()
@@ -114,7 +115,7 @@ export function buildAiContext(categories: AiDataCategory[]) {
     }
   }
 
-  return { schemaVersion: 1, generatedAt: new Date().toISOString(), period: { from, to: today(), days: aiPeriodDays }, selectedCategories: [...selected], categories: categoriesData, metrics: buildAiMetrics(selected, from) }
+  return { schemaVersion: 1, generatedAt: new Date().toISOString(), period: { from, to: today(), days }, selectedCategories: [...selected], categories: categoriesData, metrics: buildAiMetrics(selected, from) }
 }
 
 function buildAiMetrics(selected: Set<AiDataCategory>, from: string): AiMetric[] {
@@ -144,14 +145,18 @@ function buildAiMetrics(selected: Set<AiDataCategory>, from: string): AiMetric[]
   if (checkins.length) add('checkins', 'checkins.mean_energy', 'Energia média nos check-ins', Number((checkins.reduce((sum, item) => sum + item.energy, 0) / checkins.length).toFixed(1)), '/ 5')
   add('finance', 'finance.transactions', 'Transações registradas', transactions.length, 'transações')
   add('finance', 'finance.expenses_brl', 'Despesas registradas', Number(transactions.filter(item => item.kind === 'expense').reduce((sum, item) => sum + item.amount_brl, 0).toFixed(2)), 'BRL')
+  const financialGoals = getLocalFinancialGoals().filter(item => item.status === 'active' && item.target_amount > 0)
+  if (financialGoals.length) add('finance', 'finance.goals_progress', 'Progresso médio das metas financeiras ativas', Math.round(financialGoals.reduce((sum, item) => sum + Math.min(100, Math.max(0, item.saved_amount / item.target_amount * 100)), 0) / financialGoals.length), '%')
+  const manualGoals = getLocalGoals().filter(item => item.status === 'active' && item.metric === 'custom' && item.target_value > 0)
+  if (manualGoals.length) add('goalsHabits', 'goals.manual_progress', 'Progresso médio das metas manuais ativas', Math.round(manualGoals.reduce((sum, item) => sum + Math.min(100, Math.max(0, item.manual_progress / item.target_value * 100)), 0) / manualGoals.length), '%')
   add('challenges', 'challenges.completed', 'Desafios concluídos', challenges.filter(item => item.status === 'COMPLETED').length, 'desafios')
   add('progress', 'progress.xp', 'XP recebido no período', xpEntries.reduce((sum, item) => sum + item.points, 0), 'XP')
   add('progress', 'progress.achievements', 'Conquistas desbloqueadas', getLocalAchievements().length, 'conquistas')
   return metrics
 }
 
-export function getAiCategoryCounts() {
-  const context = buildAiContext(aiDataCategories.map(item => item.id))
+export function getAiCategoryCounts(periodDays = aiPeriodDays) {
+  const context = buildAiContext(aiDataCategories.map(item => item.id), periodDays)
   const data = context.categories as Record<string, Record<string, unknown>>
   return Object.fromEntries(aiDataCategories.map(item => [item.id, countItems(data[item.id])])) as Record<AiDataCategory, number>
 }

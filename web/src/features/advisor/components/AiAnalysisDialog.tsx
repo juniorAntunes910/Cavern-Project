@@ -1,4 +1,5 @@
 import type { Challenge } from '../../challenges/domain/challenge'
+import { createPortal } from 'react-dom'
 import type { LocalAnalysis } from '../services/reflection.service'
 import type { AiMetric } from '../services/ai-data.service'
 import './ai-analysis.css'
@@ -6,7 +7,7 @@ import './ai-analysis.css'
 export function AiAnalysisDialog({ analysis, metrics, challenge, onEdit, onDiscard }: { analysis: LocalAnalysis; metrics: AiMetric[]; challenge: Challenge; onEdit: () => void; onDiscard: () => void }) {
   const metricById = new Map(metrics.map(metric => [metric.id, metric]))
   const confidence = { LOW: 'baixa', MEDIUM: 'média', HIGH: 'alta' }
-  return <div className="dialog-backdrop ai-analysis-backdrop">
+  return createPortal(<div className="dialog-backdrop ai-analysis-backdrop">
     <section className="confirm-dialog ai-analysis-dialog" role="dialog" aria-modal="true" aria-labelledby="ai-analysis-title">
       <div className="section-heading"><div><p className="eyebrow">CAVERN ADVISOR · ANÁLISE LOCAL</p><h2 id="ai-analysis-title">Uma revisão dos seus registros</h2></div></div>
       <p className="ai-analysis-boundary">Esta análise local resume seus registros; não é uma avaliação psicológica nem um diagnóstico. O nível de confiança é qualitativo, não uma probabilidade clínica.</p>
@@ -17,5 +18,5 @@ export function AiAnalysisDialog({ analysis, metrics, challenge, onEdit, onDisca
       <section className="ai-analysis-challenge"><h3>Desafio sugerido: {challenge.name}</h3><p>{challenge.description} · {challenge.durationDays} dias</p><p>Você poderá revisar as regras antes de salvar ou iniciar.</p></section>
       <div className="editor-actions"><button className="subtle" type="button" onClick={onDiscard}>Descartar sugestão</button><button type="button" onClick={onEdit}>Revisar desafio</button></div>
     </section>
-  </div>
+  </div>, document.body)
 }

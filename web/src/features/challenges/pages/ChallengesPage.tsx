@@ -35,7 +35,7 @@ export function ChallengesPage() {
     {active ? <ChallengeDetail challenge={active} onComplete={() => complete(active)} onFail={() => fail(active)} /> : <section className="cavern-empty panel">
       <div><p className="eyebrow">SEU PRÓXIMO CICLO</p><h2>Escolha uma caverna para entrar.</h2><p>O progresso das suas atividades é conectado automaticamente sempre que possível.</p>{!hasActiveHabit && <p className="cavern-onboarding">Ainda não há hábitos ativos. Você pode criar um agora ou começar com um ciclo manual.</p>}</div>
       <div className="cavern-empty-actions">
-        <button disabled={generating} onClick={requestChallenge}>{generating ? 'Criando sugestão...' : aiChallengeConfigured ? 'Gerar com IA' : 'Gerar para mim'}</button>
+        <button disabled={generating} onClick={requestChallenge}>{generating ? 'Criando sugestão...' : 'Sugerir ciclo com meus dados'}</button>
         {!hasActiveHabit && <NavLink className="button subtle" to="/habits">Criar primeiro hábito</NavLink>}
         <small className="ai-privacy-note">A análise roda no aparelho. Escolha as categorias e revise a sugestão antes de iniciar.</small>
         {generationMessage && <p className="generation-message" role="status">{generationMessage}</p>}

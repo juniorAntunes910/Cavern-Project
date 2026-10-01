@@ -2,7 +2,7 @@ import { buildAiContext, type AiDataCategory, type AiMetric } from './ai-data.se
 import { generateOnDeviceText } from './android-ai.service'
 
 export type ReflectionMessage = { role: 'user' | 'assistant'; content: string }
-export type ReflectionReply = { reply: string; reflectionQuestions: string[]; recommendations: { title: string; reason: string }[]; riskLevel: 'none' | 'urgent' }
+export type ReflectionReply = { reply: string; reflectionQuestions: string[]; recommendations: { title: string; reason: string }[]; riskLevel: 'none' | 'urgent'; mode: 'generated' | 'local' }
 export type LocalAnalysis = {
   summary: string
   patterns: { category: string; statement: string; metricRefs: string[]; confidence: 'LOW' | 'MEDIUM' | 'HIGH' }[]
@@ -20,8 +20,8 @@ export function detectImmediateRisk(value: string) {
   return /(?:nao quero mais viver|nao aguento mais viver|nao quero continuar vivendo)/.test(text) || crisisPattern.test(text)
 }
 
-export function analyzeLocalData(categories: AiDataCategory[]): { analysis: LocalAnalysis; metrics: AiMetric[] } {
-  const context = buildAiContext(categories)
+export function analyzeLocalData(categories: AiDataCategory[], periodDays = 180): { analysis: LocalAnalysis; metrics: AiMetric[] } {
+  const context = buildAiContext(categories, periodDays)
   const metrics = context.metrics
   const values = new Map(metrics.map(metric => [metric.id, metric]))
   const patterns: LocalAnalysis['patterns'] = []
@@ -64,7 +64,7 @@ export function analyzeLocalData(categories: AiDataCategory[]): { analysis: Loca
   if (completedChallenges !== undefined && completedChallenges > 0) add('challenges.completed', `Você concluiu ${completedChallenges} desafios registrados. Isso mostra resultados que você pode usar como referência para definir próximos passos realistas.`)
   if (xp !== undefined && xp > 0) add('progress.xp', `Você recebeu ${xp} XP no período analisado, sinal de atividades registradas no sistema de progresso.`)
 
-  const weights = arrayOf<{ date: string; weightKg: number }>(raw.bodyWeight?.measurements).sort((left, right) => left.date.localeCompare(right.date))
+  const weights = arrayOf<{ date: string; weightKg: number }>(raw.bodyWeight).sort((left, right) => left.date.localeCompare(right.date))
   if (weights.length >= 2) {
     const difference = weights[weights.length - 1].weightKg - weights[0].weightKg
     const direction = difference === 0 ? 'não mudou' : difference > 0 ? `aumentou ${difference.toFixed(1)} kg` : `diminuiu ${Math.abs(difference).toFixed(1)} kg`
@@ -80,7 +80,7 @@ export function analyzeLocalData(categories: AiDataCategory[]): { analysis: Loca
   if (financialGoals.length) {
     const progress = financialGoals.map(goal => Math.min(100, Math.max(0, goal.saved_amount / goal.target_amount * 100)))
     const average = progress.reduce((sum, value) => sum + value, 0) / progress.length
-    add('finance.transactions', `As ${financialGoals.length} metas financeiras ativas estão, em média, em ${Math.round(average)}% do valor alvo segundo os valores registrados. Isso não é aconselhamento financeiro.`, 'MEDIUM')
+    patterns.push({ category: 'Metas financeiras', statement: `As ${financialGoals.length} metas financeiras ativas estão, em média, em ${Math.round(average)}% do valor alvo segundo os valores registrados. Isso não é aconselhamento financeiro.`, metricRefs: ['finance.goals_progress'], confidence: 'MEDIUM' })
   }
 
   const goals = arrayOf<{ title: string; target_value: number; manual_progress: number; status: string; metric?: string }>(raw.goalsHabits?.goals)
@@ -88,7 +88,7 @@ export function analyzeLocalData(categories: AiDataCategory[]): { analysis: Loca
   if (goals.length) {
     const averages = goals.map(goal => Math.min(100, Math.max(0, goal.manual_progress / goal.target_value * 100)))
     const average = averages.reduce((sum, value) => sum + value, 0) / averages.length
-    add('habits.active', `As ${goals.length} metas ativas com progresso manual estão, em média, em ${Math.round(average)}% do valor alvo. O cálculo usa somente os campos de progresso salvos.` , 'MEDIUM')
+    patterns.push({ category: 'Metas', statement: `As ${goals.length} metas ativas com progresso manual estão, em média, em ${Math.round(average)}% do valor alvo. O cálculo usa somente os campos de progresso salvos.`, metricRefs: ['goals.manual_progress'], confidence: 'MEDIUM' })
   }
 
   const checkinDays = arrayOf<{ date: string; energy: number }>(raw.checkins)
@@ -132,16 +132,15 @@ export function analyzeLocalData(categories: AiDataCategory[]): { analysis: Loca
 }
 
 export async function reflectWithAi(message: string, history: ReflectionMessage[], categories: AiDataCategory[]): Promise<ReflectionReply> {
-  if (detectImmediateRisk(message)) return { reply: crisisResourcesMessage, reflectionQuestions: [], recommendations: [], riskLevel: 'urgent' }
+  if (detectImmediateRisk(message)) return { reply: crisisResourcesMessage, reflectionQuestions: [], recommendations: [], riskLevel: 'urgent', mode: 'local' }
   const { analysis, metrics } = analyzeLocalData(categories)
   const normalized = normalize(message)
   const matched = selectRelevantMetrics(normalized, metrics)
   const evidence = matched.length
     ? `Nos seus registros locais, encontrei: ${matched.map(metric => `${metric.label}: ${metric.value} ${metric.unit}`).join('; ')}.`
     : 'Não encontrei um indicador direto sobre isso nos dados selecionados. Não vou presumir uma causa.'
-  const previousUser = [...history].reverse().find(item => item.role === 'user')
   const acknowledgment = emotionalAcknowledgment(normalized)
-  const reply = [acknowledgment, evidence, previousUser ? `Na mensagem anterior você comentou: “${previousUser.content.slice(0, 160)}”.` : '', 'Posso ajudar você a organizar possibilidades, mas não substituo um psicólogo ou outro profissional de saúde. O que parece mais importante para você neste momento?'].filter(Boolean).join('\n\n')
+  const reply = [acknowledgment, evidence, matched.length ? 'Esses números descrevem apenas o que foi registrado. O que você percebeu nesse período?' : 'Se você escolher uma área específica, posso mostrar as métricas locais que existem para ela.'].join('\n\n')
   const context = buildAiContext(categories)
   const localPrompt = [
     'Você é um orientador de bem-estar e organização pessoal do aplicativo Cavern. Responda em português brasileiro, com empatia, clareza e sem julgamento.',
@@ -157,6 +156,7 @@ export async function reflectWithAi(message: string, history: ReflectionMessage[
     reflectionQuestions: analysis.reflectionQuestions.slice(0, 2),
     recommendations: analysis.recommendations.slice(0, 2),
     riskLevel: 'none',
+    mode: generated && generated.length <= 1400 ? 'generated' : 'local',
   }
 }
 

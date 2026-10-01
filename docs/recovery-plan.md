@@ -21,6 +21,8 @@ O caminho principal deve caber em quatro passos: abrir o aplicativo, escolher um
 
 ## Validação feita
 
+O backup local agora inclui os registros da academia e os arquivos PDF no formato v2. A importação aceita backups v1, informando que esses arquivos antigos não contêm academia nem PDFs. O percurso `npm run smoke:backup` exporta em um perfil temporário e restaura em outro, verificando leitura do PDF e registros da academia.
+
 Percurso em Edge nas larguras móvel e desktop: abrir sem dados, criar hábito, concluir/desfazer o dia, criar meta e conferir avanço e descarte de edição, salvar check-in, iniciar/encerrar foco, lançar uma despesa e rejeitar valor zero, comprar/vender BTC e rejeitar uma venda retroativa sem saldo, marcar presença na academia, gerar/editar/iniciar/abandonar/excluir Caverna, recarregar e conferir persistência, importar/concluir/excluir um PDF de uma página, validar compra/equipamento na loja e navegar pelas 11 áreas. A exclusão de metas/hábitos também verifica limpeza de vínculos e recompensas. Sem erros JavaScript ou rolagem horizontal nesses percursos. `npm run lint`, TypeScript e build de produção devem permanecer como verificações antes de cada entrega.
 
 Para repetir o percurso, inicie o Vite com `npm run dev -- --host 127.0.0.1` e, em outro terminal dentro de `web/`, execute `npm run smoke`. O teste usa o Edge instalado e cria um perfil temporário; não altera os dados do navegador pessoal.
@@ -29,7 +31,7 @@ A revisão mobile verificou as 11 áreas em 320, 360 e 430 px, o leitor de PDF e
 
 ## Próximas prioridades
 
-1. **Proteção e recuperação dos dados.** Decidir se o produto será estritamente local ou terá contas. O modo local compartilha os dados com quem acessa o mesmo perfil do navegador. Criar exportação e restauração completas, incluindo PDFs, antes de depender dele para registros importantes.
+1. **Proteção e recuperação dos dados.** Decidir se o produto será estritamente local ou terá contas. O modo local compartilha os dados com quem acessa o mesmo perfil do navegador. Testar o backup v2 com bibliotecas grandes e em dispositivos reais antes de depender dele para registros importantes.
 2. **Financeiro.** Validar reconciliação contábil de aportes e apuração tributária/resultado em BTC com cenários reais de compra, venda e lançamentos retroativos. A transferência foi retirada do formulário porque não existe fluxo entre contas implementado.
 3. **Academia e Caverna.** Ensaiar sessões de treino com exercícios e ciclos completos de vários dias; revisar cancelamento, edição e históricos.
 4. **Distribuição.** Testar instalação PWA, operação offline, empacotamento Android e Electron em dispositivos reais. Esses ambientes não foram cobertos pelo ensaio de navegador.

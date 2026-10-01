@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -48,4 +50,3 @@ export async function registerAppServiceWorker() {
     return null
   }
 }
-import { Capacitor } from '@capacitor/core'

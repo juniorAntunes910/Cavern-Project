@@ -80,7 +80,7 @@ await page.locator('.goal-card').first().getByRole('button', { name: 'Descartar 
 await page.locator('.goal-card').first().getByRole('button', { name: 'Editar meta' }).click()
 assert(await page.locator('.goal-card').first().locator('input[type="checkbox"]').first().isChecked(), 'Discarding goal edit changed its links')
 await page.locator('.goal-card').first().getByRole('button', { name: 'Descartar alterações' }).click()
-for (const route of ['/habits', '/goals', '/focus', '/gym', '/books', '/finance', '/checkins', '/cavern', '/achievements', '/shop', '/profile']) {
+for (const route of ['/habits', '/goals', '/focus', '/gym', '/books', '/finance', '/checkins', '/cavern', '/achievements', '/shop', '/profile', '/advisor']) {
   await page.goto(`http://127.0.0.1:5173${route}`)
   const fits = await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth)
   assert(fits, `Rolagem horizontal em ${route}`)
@@ -170,7 +170,9 @@ await page.locator('form select').first().selectOption('workouts')
 await page.getByRole('button', { name: 'Criar meta' }).click()
 console.log('workout goal', await page.locator('.goal-card').first().locator('strong').first().textContent())
 await page.goto('http://127.0.0.1:5173/cavern')
-await page.getByRole('button', { name: 'Gerar para mim' }).click()
+await page.getByRole('button', { name: 'Sugerir ciclo com meus dados' }).click()
+await page.getByRole('dialog', { name: 'Escolha o que analisar' }).getByRole('button', { name: 'Analisar no aparelho' }).click()
+await page.getByRole('dialog', { name: 'Uma revisão dos seus registros' }).getByRole('button', { name: 'Revisar desafio' }).click()
 await page.locator('.challenge-editor input').first().fill('Ciclo de teste')
 await page.getByRole('button', { name: 'Salvar e iniciar' }).click()
 await page.getByRole('heading', { name: 'Ciclo de teste', level: 2 }).waitFor()
@@ -291,12 +293,25 @@ console.log('pageerrors', errors)
 assert.equal(errors.length, 0, 'Erros JavaScript no navegador')
 for (const width of [320, 360, 430]) {
   await page.setViewportSize({ width, height: 780 })
-  for (const route of ['/', '/goals', '/habits', '/finance', '/gym', '/cavern', '/shop', '/checkins', '/books', '/focus', '/profile']) {
+  for (const route of ['/', '/goals', '/habits', '/finance', '/gym', '/cavern', '/shop', '/checkins', '/books', '/focus', '/profile', '/advisor']) {
     await page.goto(`http://127.0.0.1:5173${route}`)
     await page.locator('h1').first().waitFor()
     assert(await page.evaluate(() => Math.max(document.body.scrollWidth, document.documentElement.scrollWidth) <= window.innerWidth), `Horizontal overflow at ${width}px on ${route}`)
   }
 }
+await page.setViewportSize({ width: 320, height: 568 })
+await page.goto('http://127.0.0.1:5173/advisor')
+await page.getByRole('button', { name: 'Criar revisão' }).click()
+assert(await page.locator('.ai-consent-backdrop').evaluate(element => {
+  const box = element.getBoundingClientRect()
+  return box.top === 0 && box.bottom === window.innerHeight && box.width === window.innerWidth
+}), 'AI consent dialog does not fit the mobile viewport')
+await page.getByRole('dialog', { name: 'Escolha o que analisar' }).getByRole('button', { name: 'Analisar no aparelho' }).click()
+assert(await page.locator('.ai-review-results').isVisible(), 'AI review was not created on mobile')
+await page.goto('http://127.0.0.1:5173/cavern')
+await page.getByRole('button', { name: 'Criar manualmente' }).click()
+assert(await page.locator('.dialog-backdrop').evaluate(element => element.getBoundingClientRect().top === 0), 'Challenge editor dialog is clipped on mobile')
+await page.getByRole('button', { name: 'Fechar', exact: true }).click()
 const topbarBeforeInset = await page.locator('.mobile-topbar').evaluate(element => element.getBoundingClientRect().height)
 await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '24px'))
 const topbarAfterInset = await page.locator('.mobile-topbar').evaluate(element => element.getBoundingClientRect().height)

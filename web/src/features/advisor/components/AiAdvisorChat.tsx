@@ -43,10 +43,8 @@ export function AiAdvisorChat() {
     setMessages(current => [...current, userMessage])
     try {
       const answer = await reflectWithAi(message, messages, categories)
-      const prompts = answer.reflectionQuestions.length ? `\n\nPara refletir:\n${answer.reflectionQuestions.map(item => `• ${item}`).join('\n')}` : ''
-      const suggestions = answer.recommendations.length ? `\n\nPassos opcionais:\n${answer.recommendations.map(item => `• ${item.title}: ${item.reason}`).join('\n')}` : ''
-      setMessages(current => [...current, { role: 'assistant', content: `${answer.reply}${prompts}${suggestions}` }])
-      setNotice(answer.riskLevel === 'urgent' ? 'Se você estiver em perigo imediato, procure um serviço de emergência agora.' : '')
+      setMessages(current => [...current, { role: 'assistant', content: answer.reply }])
+      setNotice(answer.riskLevel === 'urgent' ? 'Se você estiver em perigo imediato, procure um serviço de emergência agora.' : answer.mode === 'local' ? 'Resposta baseada em regras e métricas locais. Conversa generativa indisponível neste dispositivo.' : '')
     } catch (error) {
       const response = detectImmediateRisk(message) ? crisisResourcesMessage : 'Não consegui concluir a análise local agora. Tente novamente.'
       setMessages(current => [...current, { role: 'assistant', content: response }])
@@ -71,7 +69,7 @@ export function AiAdvisorChat() {
   }
 
   return <>
-    <section className="panel ai-advisor-card"><div><p className="eyebrow">CAVERN ADVISOR · NO APARELHO</p><h2>Conversar e refletir</h2><p>Um guia de bem-estar e organização pessoal, disponível offline. Não é psicólogo, não faz diagnóstico e não substitui ajuda profissional. A conversa não é salva no histórico.</p></div>
+    <section className="panel ai-advisor-card"><div><p className="eyebrow">CAVERN ADVISOR · NO APARELHO</p><h2>Conversar e refletir</h2><p>{modelStatus === 'available' ? 'Conversa generativa local disponível neste Android.' : 'Neste dispositivo, as respostas usam regras e métricas locais. A conversa generativa precisa de um Android compatível com Gemini Nano.'} A conversa não é salva. Este recurso não faz diagnóstico nem substitui ajuda profissional.</p></div>
       {!enabled ? <><button type="button" onClick={() => setConsentOpen(true)}>Iniciar conversa</button>{modelStatus === 'downloadable' && <button className="subtle" type="button" disabled={downloadingModel} onClick={() => void downloadModel()}>{downloadingModel ? 'Baixando modelo…' : 'Baixar modelo generativo para este aparelho'}</button>}{modelStatus === 'unavailable' && <small>Este aparelho usa a análise offline do Cavern; o modelo generativo Android não está disponível.</small>}{notice && <p className="ai-chat-notice" role="status">{notice}</p>}</> : <div className="ai-chat"><div className="ai-chat-messages" aria-live="polite">{messages.map((item, index) => <p className={`ai-chat-message ${item.role}`} key={`${item.role}-${index}`}><strong>{item.role === 'assistant' ? 'Orientador local' : 'Você'}</strong><span>{item.content}</span></p>)}{sending && <p className="ai-chat-status" role="status">Analisando no aparelho…</p>}</div>
         {notice && <p className="ai-chat-notice" role="status">{notice}</p>}
         <form onSubmit={event => void send(event)}><label className="sr-only" htmlFor="ai-advisor-message">Sua mensagem</label><textarea id="ai-advisor-message" value={text} maxLength={1200} onChange={event => setText(event.target.value)} placeholder="Escreva o que você gostaria de conversar…" /><button disabled={sending || !text.trim()} type="submit">Enviar</button></form>
