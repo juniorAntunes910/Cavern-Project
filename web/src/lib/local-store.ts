@@ -30,11 +30,42 @@ export const MINIMUM_FOCUS_SECONDS = 5 * 60
 
 export const localDataKeys = { goals: 'cavern.local.goals.v2', habits: 'cavern.local.habits.v1', habitLogs: 'cavern.local.habit-logs.v1', goalHabitLinks: 'cavern.local.goal-habit-links.v1', books: 'cavern.local.books.v1', sessions: 'cavern.local.reading-sessions.v1', checkins: 'cavern.local.checkins.v1', workouts: 'cavern.local.workouts.v1', financeTransactions: 'cavern.local.finance-transactions.v1', financialGoals: 'cavern.local.financial-goals.v1', challenges: 'cavern.local.challenges.v1', challengeRuleLogs: 'cavern.local.challenge-rule-logs.v1', focusSessions: 'cavern.local.focus-sessions.v1', xpLedger: 'cavern.local.xp-ledger.v1', rewards: 'cavern.local.reward-transactions.v1', inventory: 'cavern.local.inventory.v1', customization: 'cavern.local.customization.v1', timeline: 'cavern.local.timeline.v1', achievements: 'cavern.local.achievements.v1', profile: 'cavern.local.profile.v1' } as const
 const keys = localDataKeys
-const read = <T>(key: string): T[] => { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) as T[] : [] } catch { return [] } }
-const write = <T>(key: string, value: T[]) => {
+// Screens re-read their collections on every render and on every 'cavern:data-changed', so parsing the stored JSON on
+// each read made the cost of one action grow with the whole history. The parsed array is cached and revalidated
+// against the raw string on every read (getItem returns the same string instance until the value changes), so writes
+// from anywhere else (another tab, a backup restore, devtools) are still picked up on the next read.
+const parsedCollections = new Map<string, { raw: string; items: unknown[] }>()
+/** The returned array is a fresh copy, but its elements are shared between calls: treat them as immutable. */
+export function readCollection<T>(key: string): T[] {
+  let raw: string | null
+  try { raw = localStorage.getItem(key) } catch { return [] }
+  if (!raw) return []
+  const cached = parsedCollections.get(key)
+  if (cached?.raw === raw) { cached.raw = raw; return cached.items.slice() as T[] } // keep the latest instance so the next check is by identity
+  let items: unknown[]
+  try { const parsed: unknown = JSON.parse(raw); items = Array.isArray(parsed) ? parsed : [] } catch { items = [] }
+  parsedCollections.set(key, { raw, items })
+  return items.slice() as T[]
+}
+export function writeCollection<T>(key: string, value: T[]) {
   localStorage.setItem(key, JSON.stringify(value))
   persistDatabaseValue(key, value)
   window.dispatchEvent(new Event('cavern:data-changed'))
+}
+const read = readCollection
+const write = writeCollection
+
+// Derived values (progress, achievements) are expensive to rebuild, so they are memoized until the next data change.
+let dataRevision = 0
+window.addEventListener('cavern:data-changed', () => { dataRevision++ })
+/** Memoizes `compute` until the next 'cavern:data-changed' and, with `daily`, until the calendar day rolls over. */
+export function memoizeByRevision<T>(compute: () => T, { daily = false } = {}): () => T {
+  let cached: { revision: number; day: string; value: T } | undefined
+  return () => {
+    const day = daily ? today() : ''
+    if (cached?.revision !== dataRevision || cached.day !== day) cached = { revision: dataRevision, day, value: compute() }
+    return cached.value
+  }
 }
 const id = createId
 
