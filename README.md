@@ -84,6 +84,9 @@ Execute os comandos dentro de `web/`.
 # Verificar qualidade do código
 npm run lint
 
+# Executar os testes unitários
+npm test
+
 # Gerar a PWA de produção em dist/
 npm run build
 

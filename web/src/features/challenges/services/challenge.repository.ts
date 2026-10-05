@@ -1,9 +1,6 @@
-import { persistDatabaseValue } from '../../../lib/app-db'
-import { localDataKeys, revokeSourceRewards } from '../../../lib/local-store'
+import { localDataKeys, readCollection as read, revokeSourceRewards, writeCollection as write } from '../../../lib/local-store'
 import type { Challenge, ChallengeRuleLog } from '../domain/challenge'
 
-function read<T>(key: string): T[] { try { const value = localStorage.getItem(key); return value ? JSON.parse(value) as T[] : [] } catch { return [] } }
-function write<T>(key: string, value: T[]) { localStorage.setItem(key, JSON.stringify(value)); persistDatabaseValue(key, value); window.dispatchEvent(new Event('cavern:data-changed')) }
 export function getChallenges() { return read<Challenge>(localDataKeys.challenges).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }
 export function getChallenge(id: string) { return getChallenges().find(challenge => challenge.id === id) }
 export function saveChallenge(challenge: Challenge) { const current = getChallenges(); const exists = current.some(item => item.id === challenge.id); const next = exists ? current.map(item => item.id === challenge.id ? challenge : item) : [challenge, ...current]; write(localDataKeys.challenges, next); return challenge }

@@ -1,12 +1,9 @@
-import { persistDatabaseValue } from '../../../lib/app-db'
 import { createId } from '../../../lib/id'
-import { grantConfiguredReward, getLocalWorkouts, today } from '../../../lib/local-store'
+import { grantConfiguredReward, getLocalWorkouts, readCollection as read, today, writeCollection as write } from '../../../lib/local-store'
 import type { BodyWeightEntry, Exercise, GymAttendance, WorkoutPlan, WorkoutSession, WorkoutSessionExercise } from '../domain'
 import { defaultExercises } from '../data/defaultExercises'
 
 const keys = { exercises: 'cavern.gym.exercises.v1', plans: 'cavern.gym.plans.v1', sessions: 'cavern.gym.sessions.v1', attendance: 'cavern.gym.attendance.v1', bodyWeight: 'cavern.gym.body-weight.v1' }
-const read = <T,>(key: string): T[] => { try { return JSON.parse(localStorage.getItem(key) ?? '[]') as T[] } catch { return [] } }
-const write = <T,>(key: string, value: T[]) => { localStorage.setItem(key, JSON.stringify(value)); void persistDatabaseValue(key, value); window.dispatchEvent(new Event('cavern:data-changed')) }
 export const muscleLabels: Record<Exercise['muscleGroup'], string> = { CHEST: 'Peito', BACK: 'Costas', SHOULDERS: 'Ombros', BICEPS: 'Bíceps', TRICEPS: 'Tríceps', LEGS: 'Pernas', GLUTES: 'Glúteos', CALVES: 'Panturrilhas', CORE: 'Abdômen / Core', CARDIO: 'Cardio', OTHER: 'Outros' }
 export function getExercises() { return [...defaultExercises, ...read<Exercise>(keys.exercises)].sort((a, b) => a.name.localeCompare(b.name)) }
 export function createExercise(input: Omit<Exercise, 'id' | 'isCustom' | 'createdAt'>) { const exercise = { ...input, id: createId(), isCustom: true, createdAt: new Date().toISOString() }; write(keys.exercises, [...read<Exercise>(keys.exercises), exercise]); return exercise }
