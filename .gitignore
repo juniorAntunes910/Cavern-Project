@@ -16,3 +16,6 @@ cloudflared.exe
 
 # Runtime logs
 *.log
+
+# Showreel renders are large; the source is tracked, the encoded videos are not
+showreel/*.mp4

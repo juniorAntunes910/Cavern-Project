@@ -1,3 +1,4 @@
+import { CountUp } from '../../components/CountUp'
 import { useState } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
@@ -69,7 +70,7 @@ export function Shop() {
       <header>
         <p className="eyebrow">LOJA DA CAVERNA</p>
         <h1>Personalização</h1>
-        <p className="shop-balance">🔥 {balance.embers} Brasas</p>
+        <p className="shop-balance">🔥 <CountUp value={balance.embers} /> Brasas</p>
       </header>
       {message && <p className="action-feedback">{message}</p>}
       <section className="panel shop-loadout">

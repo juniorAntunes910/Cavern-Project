@@ -7,6 +7,7 @@ import { localDataKeys, removeCavernsData } from './lib/local-store'
 import { gymDataKeys } from './features/gym/services/gym.service'
 import { registerAppServiceWorker } from './lib/pwa'
 import './index.css'
+import './motion.css'
 
 async function startApp() {
   try {

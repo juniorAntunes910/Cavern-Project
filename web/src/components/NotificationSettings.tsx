@@ -1,3 +1,4 @@
+import { Select } from './Select'
 import { useEffect, useState } from 'react'
 import { disableHabitNotifications, enableHabitNotifications, getNotificationSettings, updateNotificationHour, type NotificationSettings as Settings } from '../lib/notifications'
 
@@ -33,9 +34,9 @@ export function NotificationSettings() {
     <div><strong>Lembrete de hábitos</strong><span>Uma notificação por dia quando ainda houver hábitos pendentes.</span></div>
     <div className="notification-actions">
       <label>Horário
-        <select disabled={!settings.enabled || busy} value={settings.hour} onChange={event => void changeHour(Number(event.target.value))}>
+        <Select compact disabled={!settings.enabled || busy} value={settings.hour} onChange={event => void changeHour(Number(event.target.value))}>
           {hours.map(hour => <option value={hour} key={hour}>{String(hour).padStart(2, '0')}:00</option>)}
-        </select>
+        </Select>
       </label>
       <button type="button" className={settings.enabled ? 'danger' : 'subtle'} disabled={busy || unsupported} onClick={() => void toggle()}>
         {unsupported ? 'Indisponível' : busy ? 'Aguarde...' : settings.enabled ? 'Desativar' : 'Ativar notificações'}

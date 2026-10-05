@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CountUp } from "./components/CountUp";
 import type { FormEvent, ReactNode } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { allowedEmail, supabase, supabaseConfigured } from "./lib/supabase";
@@ -176,16 +177,27 @@ function Shell({ profile }: { profile: ReactNode }) {
               key={to}
               to={to}
               end={to === "/"}
+              viewTransition
               onClick={() => setMenuOpen(false)}
             >
-              {label}
+              {({ isActive }) => (
+                <>
+                  {isActive && <span className="nav-pill" aria-hidden="true" />}
+                  <span className="nav-label">{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
           <details className="nav-more">
             <summary>Mais áreas</summary>
             {moreNav.map(([to, label]) => (
-              <NavLink key={to} to={to} onClick={() => setMenuOpen(false)}>
-                {label}
+              <NavLink key={to} to={to} viewTransition onClick={() => setMenuOpen(false)}>
+                {({ isActive }) => (
+                  <>
+                    {isActive && <span className="nav-pill" aria-hidden="true" />}
+                    <span className="nav-label">{label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </details>
@@ -224,6 +236,7 @@ function RewardFeedback() {
   const shownId = useRef(getLocalRewardTransactions()[0]?.id ?? "");
   const timer = useRef<number | undefined>(undefined);
   const [reward, setReward] = useState<ReturnType<typeof getLocalRewardTransactions>[number] | null>(null);
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
     const showLatestReward = () => {
       const latest = getLocalRewardTransactions()[0];
@@ -231,13 +244,17 @@ function RewardFeedback() {
       shownId.current = latest.id;
       window.clearTimeout(timer.current);
       setReward(latest);
-      timer.current = window.setTimeout(() => setReward(null), 4200);
+      setLeaving(false);
+      timer.current = window.setTimeout(() => {
+        setLeaving(true);
+        timer.current = window.setTimeout(() => setReward(null), 320);
+      }, 3900);
     };
     window.addEventListener("cavern:data-changed", showLatestReward);
     return () => { window.removeEventListener("cavern:data-changed", showLatestReward); window.clearTimeout(timer.current); };
   }, []);
   if (!reward) return null;
-  return <div className="reward-toast" role="status"><span aria-hidden="true">✦</span><div><strong>Recompensa recebida</strong><small>{reward.title} · +{reward.xp} XP · +{reward.embers} brasas</small></div></div>;
+  return <div className={`reward-toast${leaving ? " leaving" : ""}`} role="status"><span aria-hidden="true">✦</span><div><strong>Recompensa recebida</strong><small>{reward.title} · +{reward.xp} XP · +{reward.embers} brasas</small></div></div>;
 }
 
 function ThemeToggle() {
@@ -268,7 +285,7 @@ function StreakBadge({ compact = false }: { compact?: boolean }) {
       aria-label={`Sequência atual: ${streak} dias`}
     >
       <span aria-hidden="true">🔥</span>
-      <strong>{streak}</strong>
+      <strong><CountUp value={streak} duration={700} /></strong>
       {!compact && (
         <small>{streak === 1 ? "dia seguido" : "dias seguidos"}</small>
       )}
