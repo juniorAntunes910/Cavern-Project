@@ -1,3 +1,119 @@
-.platinum-marker{align-items:center;background:linear-gradient(120deg,var(--surface),color-mix(in srgb,#d9e6ec 9%,var(--surface)));border:1px solid var(--line);border-radius:16px;display:grid;gap:18px;grid-template-columns:auto 1fr minmax(140px,260px);margin-bottom:28px;padding:20px 24px}.platinum-marker>span{align-items:center;background:var(--surface2);border:1px solid var(--line);border-radius:50%;display:flex;font-size:1.7rem;height:54px;justify-content:center;width:54px}.platinum-marker h2,.platinum-marker p{margin:3px 0}.platinum-marker p:last-child{color:var(--muted)}.platinum-marker.complete{border-color:#e8c86c}.platinum-marker.complete>span{background:#4a3d1e;border-color:#e8c86c}.platinum-marker.complete .progress-track i{background:#e8c86c}.secret-achievement-wrap{display:flex;justify-content:center;margin:48px 0}.secret-achievement{background:radial-gradient(circle at 50% 0,color-mix(in srgb,var(--purple) 24%,transparent),var(--surface) 60%);border-color:color-mix(in srgb,var(--purple) 65%,var(--line));max-width:520px;min-height:360px;padding:38px;text-align:center;width:100%}.secret-achievement>strong{font-size:5.2rem;filter:drop-shadow(0 8px 18px color-mix(in srgb,#e5c56e 36%,transparent))}.secret-achievement h2{font-size:2rem}.secret-achievement p{font-size:1rem;margin:auto;max-width:310px}.secret-achievement b{font-size:1rem;margin-top:15px}@media(max-width:700px){.platinum-marker{align-items:start;grid-template-columns:auto 1fr}.platinum-marker .progress-track{grid-column:1/-1;width:100%}.secret-achievement{min-height:320px;padding:28px 20px}}
-.achievement-card{color:var(--text);cursor:pointer;text-align:left}.achievement-card:hover{border-color:var(--purple);transform:translateY(-2px)}.achievement-card:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--purple) 32%,transparent);outline:0}.achievement-dialog{text-align:center}.achievement-dialog>strong{display:block;font-size:3rem}.achievement-dialog h2{margin:8px 0}.achievement-requirement{background:var(--surface2);border:1px solid var(--line);border-radius:10px;display:grid;gap:5px;margin:20px 0;padding:14px;text-align:left}.achievement-requirement span{color:var(--muted);font-size:.8rem}.achievement-requirement strong{color:var(--purple)}.achievement-reward{color:var(--green)!important;font-weight:800}
-.achievement-complete{align-items:center;background:var(--greenSoft);border:1px solid var(--green);border-radius:999px;color:var(--green);display:flex;font-size:.7rem;font-weight:800;gap:4px;justify-self:end;padding:5px 8px;position:absolute;right:16px;top:16px}.achievement-card{position:relative}
+/* Cores por raridade: cada cartão/diálogo define --rc e o resto deriva dela. */
+.rarity-common { --rc: #9fb0a6; }
+.rarity-rare { --rc: #5aa9ff; }
+.rarity-epic { --rc: #b57cff; }
+.rarity-legendary { --rc: #f2c45a; }
+:root[data-theme='light'] .rarity-common { --rc: #6d8176; }
+:root[data-theme='light'] .rarity-rare { --rc: #2f7fd6; }
+:root[data-theme='light'] .rarity-epic { --rc: #8a4fd6; }
+:root[data-theme='light'] .rarity-legendary { --rc: #c4961c; }
+
+/* ---------- Resumo ---------- */
+.achievement-hero { align-items: center; background: radial-gradient(120% 140% at 0 0, color-mix(in srgb, var(--purple) 16%, transparent), transparent 55%), var(--surface); border: 1px solid var(--line); border-radius: 18px; display: grid; gap: 26px; grid-template-columns: auto 1fr auto; margin-bottom: 22px; padding: 26px 30px; }
+.achievement-hero.complete { border-color: #e8c86c; background: radial-gradient(120% 140% at 0 0, color-mix(in srgb, #f2c45a 22%, transparent), transparent 55%), var(--surface); }
+.achievement-ring { display: grid; height: 132px; place-items: center; position: relative; width: 132px; }
+.achievement-ring svg { height: 100%; inset: 0; position: absolute; width: 100%; }
+.achievement-ring circle { fill: none; stroke-width: 9; }
+.ring-bg { stroke: var(--surface2); }
+.ring-fill { stroke: var(--purple); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--purple) 55%, transparent)); }
+.achievement-hero.complete .ring-fill { stroke: #f2c45a; filter: drop-shadow(0 0 8px color-mix(in srgb, #f2c45a 60%, transparent)); }
+.achievement-ring > div { display: grid; justify-items: center; line-height: 1.05; }
+.achievement-ring strong { font-size: 2.3rem; }
+.achievement-ring > div > span { color: var(--muted); font-size: .8rem; }
+.achievement-hero-info h2 { font-size: 1.5rem; margin: 4px 0; }
+.achievement-hero-info p { margin: 2px 0; }
+.achievement-hero-info > p:not(.eyebrow) { color: var(--muted); }
+.achievement-rarities { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.rarity-pill { align-items: center; background: color-mix(in srgb, var(--rc) 12%, var(--surface2)); border: 1px solid color-mix(in srgb, var(--rc) 40%, var(--line)); border-radius: 999px; display: inline-flex; font-size: .78rem; font-weight: 600; gap: 7px; padding: 5px 11px; }
+.rarity-pill i { background: var(--rc); border-radius: 50%; box-shadow: 0 0 8px var(--rc); height: 8px; width: 8px; }
+.rarity-pill b { color: var(--muted); font-weight: 700; }
+.rarity-pill.common { --rc: #9fb0a6; } .rarity-pill.rare { --rc: #5aa9ff; } .rarity-pill.epic { --rc: #b57cff; } .rarity-pill.legendary { --rc: #f2c45a; }
+.achievement-earned { display: grid; gap: 10px; margin: 0; }
+.achievement-earned div { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; min-width: 130px; padding: 10px 14px; text-align: right; }
+.achievement-earned dt { color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.achievement-earned dd { color: var(--green); font-size: 1.35rem; font-weight: 800; margin: 2px 0 0; }
+
+/* ---------- Filtros ---------- */
+.achievement-toolbar { display: grid; gap: 10px; margin-bottom: 20px; }
+.achievement-toolbar > * { min-width: 0; }
+.achievement-tabs { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; }
+.achievement-tabs button.subtle { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: none; color: var(--muted); font-size: .84rem; font-weight: 600; padding: 7px 14px; }
+.achievement-tabs button small { background: var(--surface2); border-radius: 999px; font-size: .72rem; margin-left: 4px; padding: 1px 7px; }
+.achievement-tabs button.subtle.active { background: var(--purpleSoft); border-color: var(--purple); color: var(--purple); }
+.achievement-empty { margin: 8px 0 28px; text-align: center; }
+
+/* ---------- Cartões ---------- */
+.achievement-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.achievement-card { align-content: start; cursor: pointer; display: grid; gap: 10px; overflow: hidden; padding: 20px; position: relative; text-align: left; color: var(--text); border-color: color-mix(in srgb, var(--rc) 28%, var(--line)); background: linear-gradient(160deg, color-mix(in srgb, var(--rc) 9%, var(--surface)), var(--surface) 55%); }
+.achievement-card h2 { font-size: 1.12rem; margin: 0; }
+.achievement-card p { margin: 0; }
+.achievement-text { color: var(--muted); font-size: .88rem; line-height: 1.4; min-height: 2.5em; }
+.achievement-card:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--rc) 40%, transparent); outline: 0; }
+@media (hover: hover) { .achievement-card:hover { border-color: var(--rc); box-shadow: 0 12px 32px color-mix(in srgb, var(--rc) 22%, transparent); transform: translateY(-3px); } }
+.achievement-card.locked .achievement-text, .achievement-card.locked h2 { opacity: .85; }
+.achievement-card-head { align-items: center; display: flex; justify-content: space-between; min-height: 24px; }
+.rarity-tag { background: color-mix(in srgb, var(--rc) 16%, transparent); border-radius: 999px; color: var(--rc); font-size: .68rem; font-weight: 800; letter-spacing: .1em; padding: 3px 9px; text-transform: uppercase; }
+.achievement-complete { align-items: center; background: var(--greenSoft); border: 1px solid var(--green); border-radius: 999px; color: var(--green); display: flex; font-size: .68rem; font-weight: 800; gap: 4px; padding: 3px 9px; position: static; }
+
+.achievement-medal { align-items: center; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--rc) 55%, #fff 10%), color-mix(in srgb, var(--rc) 22%, var(--surface2)) 70%); border: 2px solid var(--rc); border-radius: 50%; box-shadow: 0 0 0 4px color-mix(in srgb, var(--rc) 14%, transparent), 0 8px 22px color-mix(in srgb, var(--rc) 28%, transparent); display: flex; font-size: 1.9rem; height: 62px; justify-content: center; position: relative; width: 62px; }
+.achievement-medal.large { font-size: 2.8rem; height: 96px; margin: 0 auto 14px; width: 96px; }
+.achievement-medal span { line-height: 1; }
+.achievement-medal em { background: var(--surface); border: 1px solid var(--line); border-radius: 50%; bottom: -4px; font-size: .7rem; font-style: normal; height: 22px; line-height: 20px; position: absolute; right: -4px; text-align: center; width: 22px; }
+.achievement-medal.large em { font-size: .95rem; height: 30px; line-height: 28px; width: 30px; }
+.achievement-card.locked .achievement-medal { filter: grayscale(.85); opacity: .7; box-shadow: none; }
+.achievement-card.locked .achievement-medal em, .achievement-dialog.locked .achievement-medal em { filter: none; }
+.achievement-dialog.locked .achievement-medal { filter: grayscale(.85); opacity: .75; box-shadow: none; }
+
+.achievement-meter { display: grid; gap: 5px; }
+.achievement-meter small { color: var(--muted); font-size: .74rem; font-variant-numeric: tabular-nums; }
+.achievement-meter .progress-track i { background: var(--rc); }
+.achievement-rewards { display: flex; flex-wrap: wrap; gap: 6px; }
+.achievement-rewards.center { justify-content: center; margin: 4px 0 18px; }
+.achievement-rewards span { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--green); font-size: .76rem; font-weight: 800; padding: 3px 9px; }
+
+/* Brilho que atravessa as conquistas desbloqueadas épicas e lendárias */
+.achievement-unlocked.rarity-epic::after, .achievement-unlocked.rarity-legendary::after { animation: achievement-sheen 6s ease-in-out infinite; background: linear-gradient(105deg, transparent 40%, color-mix(in srgb, var(--rc) 28%, transparent) 50%, transparent 60%); content: ''; inset: 0; pointer-events: none; position: absolute; transform: translateX(-120%); }
+.achievement-unlocked.rarity-legendary { box-shadow: 0 0 0 1px color-mix(in srgb, var(--rc) 40%, transparent), 0 10px 34px color-mix(in srgb, var(--rc) 16%, transparent); }
+@keyframes achievement-sheen { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
+@keyframes ring-draw { from { stroke-dasharray: 0 100; } }
+.ring-fill { animation: ring-draw 1.1s cubic-bezier(.2, .8, .2, 1) .2s backwards; }
+@keyframes medal-pop { 0% { opacity: 0; transform: scale(.6) rotate(-12deg); } 70% { transform: scale(1.08) rotate(3deg); } 100% { opacity: 1; transform: none; } }
+.achievement-dialog .achievement-medal.large { animation: medal-pop .55s cubic-bezier(.2, .9, .25, 1.15) .08s backwards; }
+
+/* ---------- Diálogo ---------- */
+.confirm-dialog.achievement-dialog { background: radial-gradient(110% 70% at 50% 0, color-mix(in srgb, var(--rc) 20%, transparent), var(--surface) 70%); border-color: color-mix(in srgb, var(--rc) 55%, var(--line)); text-align: center; }
+.achievement-dialog h2 { margin: 6px 0; }
+.achievement-dialog p:not(.eyebrow) { color: var(--muted); }
+.achievement-dialog .eyebrow { color: var(--rc); }
+.achievement-requirement { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 7px; margin: 18px 0 14px; padding: 14px; text-align: left; }
+.achievement-requirement span { color: var(--muted); font-size: .78rem; }
+.achievement-requirement strong { color: var(--rc); font-variant-numeric: tabular-nums; }
+.achievement-requirement .progress-track i { background: var(--rc); }
+
+/* ---------- Conquista secreta ---------- */
+.secret-achievement-wrap { display: flex; justify-content: center; margin: 40px 0; }
+.achievement-card.secret-achievement { --rc: #b57cff; background: radial-gradient(circle at 50% 0, color-mix(in srgb, var(--purple) 26%, transparent), var(--surface) 62%); justify-items: center; max-width: 440px; padding: 30px; text-align: center; width: 100%; }
+.secret-achievement .achievement-medal { font-size: 2.4rem; height: 84px; width: 84px; }
+.secret-achievement .achievement-card-head { justify-content: center; }
+.secret-achievement .achievement-text { max-width: 300px; min-height: 0; }
+.secret-achievement .achievement-rewards { justify-content: center; }
+
+@media (max-width: 800px) {
+  .achievement-hero { gap: 18px; grid-template-columns: auto 1fr; padding: 20px; }
+  .achievement-earned { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .achievement-earned div { text-align: left; }
+}
+@media (max-width: 560px) {
+  .achievement-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .achievement-rarities { justify-content: center; }
+  .achievement-earned { width: 100%; }
+  .achievement-grid { grid-template-columns: 1fr; }
+  .achievement-tabs { flex-wrap: nowrap; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+  .achievement-tabs button { flex: none; }
+}
+@media (prefers-reduced-motion: reduce) { .achievement-unlocked::after { animation: none; display: none; } }
+
+/* O .confirm-dialog genérico estiliza qualquer div filha como barra de botões; aqui restauramos o layout. */
+.confirm-dialog.achievement-dialog > .achievement-medal { display: flex; justify-content: center; margin: 0 auto 14px; }
+.confirm-dialog.achievement-dialog > .achievement-requirement { display: grid; justify-content: normal; margin: 18px 0 14px; }
+.confirm-dialog.achievement-dialog > .achievement-rewards { display: flex; flex-direction: row; justify-content: center; margin: 4px 0 18px; }

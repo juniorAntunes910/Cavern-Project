@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cavern Showreel</title>
+<style>
+  :root {
+    --bg: #07080a; --surface: #171a18; --surface2: #111412; --line: #292e2a; --text: #f1f2ee; --muted: #aeb4ac;
+    --purple: #9c7de8; --purpleSoft: #302548; --green: #9dbe91; --ember: #ff8a3d; --gold: #f2c45a;
+    --display: "Segoe UI", system-ui, sans-serif; --hud: "Bahnschrift", "Segoe UI", sans-serif; --mono: Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--display); }
+  #stage { position: absolute; inset: 0; overflow: hidden; perspective: 1800px; background: radial-gradient(120% 90% at 50% 110%, #1a1210 0%, #0b0b0e 45%, #050507 100%); }
+  canvas { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+  .scene { position: absolute; inset: 0; transform-style: preserve-3d; visibility: hidden; }
+  .abs { position: absolute; }
+  .center { left: 50%; top: 50%; }
+  .hud { font-family: var(--hud); font-weight: 600; letter-spacing: .32em; text-transform: uppercase; font-size: 18px; color: var(--muted); }
+  .kicker { font-family: var(--hud); font-weight: 700; letter-spacing: .5em; text-transform: uppercase; color: var(--purple); font-size: 22px; }
+  .mega { font-weight: 900; letter-spacing: -.04em; line-height: .85; white-space: nowrap; }
+  .outline { color: transparent; -webkit-text-stroke: 2px rgba(241, 242, 238, .22); }
+  .mask { overflow: hidden; display: inline-block; vertical-align: top; }
+  .mask > span { display: inline-block; will-change: transform; }
+
+  /* janelas e telefones com telas reais */
+  .window { position: absolute; border-radius: 22px; overflow: hidden; background: #0e100f; box-shadow: 0 60px 140px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07); transform-style: preserve-3d; }
+  .window .bar { height: 44px; background: #15171a; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .window .bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3d42; display: block; }
+  .window .bar i:nth-child(1) { background: #ff5f57; } .window .bar i:nth-child(2) { background: #febc2e; } .window .bar i:nth-child(3) { background: #28c840; }
+  .window .bar b { margin-left: 18px; font: 600 15px var(--hud); color: #7b8088; letter-spacing: .04em; background: #0d0f11; padding: 6px 16px; border-radius: 8px; }
+  .window .view { position: relative; overflow: hidden; }
+  .window .view img { display: block; width: 100%; }
+  .phone { position: absolute; width: 380px; height: 822px; border-radius: 58px; background: #050506; padding: 14px; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px #2a2c31, inset 0 0 0 2px #111; }
+  .phone .glass { position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: #0d0f0e; }
+  .phone .glass img { width: 100%; display: block; }
+  .phone .notch { position: absolute; top: 12px; left: 50%; width: 110px; height: 32px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 2; }
+  .sheen { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 48%, transparent 60%); mix-blend-mode: screen; pointer-events: none; }
+
+  /* chat */
+  .bubble { position: absolute; border-radius: 26px; padding: 26px 32px; font-size: 30px; line-height: 1.36; max-width: 980px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .bubble small { display: block; font: 700 17px var(--hud); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; opacity: .75; }
+  .bubble.ai { background: #121513; border: 1px solid #2a302c; }
+  .bubble.me { background: var(--purpleSoft); border: 1px solid #4b3b72; }
+  .typing i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); margin-right: 10px; }
+
+  /* medalhas, chips */
+  .chip { position: absolute; font: 700 22px var(--hud); letter-spacing: .2em; padding: 12px 24px; border-radius: 999px; border: 1px solid rgba(156,125,232,.5); background: rgba(48,37,72,.55); color: #d9cdfb; text-transform: uppercase; white-space: nowrap; }
+  .tile { position: absolute; width: 640px; height: 400px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); backface-visibility: hidden; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+  .flashword { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 900; font-size: 210px; letter-spacing: -.04em; transform: translateY(-50%); mix-blend-mode: normal; text-shadow: 0 0 60px rgba(156,125,232,.55); }
+  #flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, #ffd9a8, #ff9a4d 55%, #7a3b1c); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+  #letterbox { position: absolute; inset: 0; pointer-events: none; }
+  #letterbox::before, #letterbox::after { content: ''; position: absolute; left: 0; right: 0; height: var(--lb, 0px); background: #000; }
+  #letterbox::before { top: 0; } #letterbox::after { bottom: 0; }
+  #timecode { position: absolute; right: 54px; bottom: 40px; font: 600 16px var(--mono); color: rgba(241,242,238,.45); letter-spacing: .12em; }
+  #brandmark { position: absolute; left: 54px; bottom: 40px; font: 700 16px var(--hud); letter-spacing: .5em; color: rgba(241,242,238,.45); }
+  #progressbar { position: absolute; left: 54px; right: 54px; bottom: 26px; height: 2px; background: rgba(255,255,255,.08); }
+  #progressbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ember), var(--purple)); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+
+  <!-- 1 · abertura: brasa → fogo → logo -->
+  <section class="scene" id="s-open">
+    <svg id="fire-big" class="abs" viewBox="-60 -110 120 120" width="520" height="520" style="left:700px;top:180px;overflow:visible">
+      <defs><radialGradient id="fg" cx="50%" cy="80%" r="60%"><stop offset="0" stop-color="#ffd27a"/><stop offset=".55" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/></radialGradient></defs>
+      <g id="fb-flame">
+        <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="url(#fg)"/>
+        <path id="fb-core" d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#fff1b0"/>
+      </g>
+    </svg>
+    <div id="logo" class="abs mega" style="left:0;right:0;top:640px;text-align:center;font-size:200px;letter-spacing:.18em;padding-left:.18em"></div>
+    <div id="open-tag" class="abs hud" style="left:0;right:0;top:880px;text-align:center;font-size:24px">A habit system that lights up your day</div>
+  </section>
+
+  <!-- 2 · herói: mascote + sequência -->
+  <section class="scene" id="s-hero">
+    <div id="hero-word" class="abs mega outline" style="left:0;right:0;top:160px;text-align:center;font-size:330px">STREAK</div>
+    <svg id="mascot" class="abs" viewBox="0 0 300 200" width="1050" height="700" style="left:180px;top:250px;overflow:visible">
+      <ellipse cx="150" cy="182" rx="135" ry="11" fill="#000" opacity=".35"/>
+      <ellipse id="m-glow" cx="225" cy="165" rx="60" ry="22" fill="#ffb24a" opacity=".22"/>
+      <g id="m-body">
+        <path d="M39 159Q20 119 48 76Q62 48 89 39Q117 49 136 81Q159 121 135 159Z" fill="#9c7de8" stroke="#69529f" stroke-width="3"/>
+        <path d="M52 133V107Q52 67 89 62Q127 67 127 107V133Q92 153 52 133Z" fill="#20202c"/>
+        <ellipse class="m-eye" cx="75" cy="106" rx="6" ry="8" fill="#ffcf73"/>
+        <ellipse class="m-eye" cx="106" cy="106" rx="6" ry="8" fill="#ffcf73"/>
+        <path d="M83 122Q90 132 98 122" fill="none" stroke="#ffcf73" stroke-width="3" stroke-linecap="round"/>
+        <path id="m-arm" d="M48 139Q30 147 36 162M132 139Q148 141 155 128" fill="none" stroke="#9c7de8" stroke-width="14" stroke-linecap="round"/>
+        <ellipse cx="67" cy="172" rx="22" ry="10" fill="#69529f"/>
+        <ellipse cx="116" cy="172" rx="22" ry="10" fill="#69529f"/>
+        <path id="m-crown" d="M53 81L57 54L72 70L89 44L106 70L121 54L127 81Z" fill="#ffcc63" stroke="#a86622" stroke-width="3"/>
+      </g>
+      <path d="M185 169L263 182M190 181L259 165" stroke="#88583b" stroke-width="12" stroke-linecap="round"/>
+      <g transform="translate(223 163)"><g id="m-fire" style="transform-box:fill-box;transform-origin:50% 100%">
+        <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="#f58d38"/>
+        <path d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#ffdc79"/>
+      </g></g>
+    </svg>
+    <div class="abs" style="left:1190px;top:330px;width:620px">
+      <div class="kicker" id="hero-k">Your fire</div>
+      <div id="hero-count" class="mega" style="font-size:300px;margin-top:10px;background:linear-gradient(180deg,#fff 30%,#ffb26b);-webkit-background-clip:text;color:transparent">0</div>
+      <div class="hud" id="hero-sub" style="font-size:30px;color:#e9dcc9;letter-spacing:.4em">days in a row</div>
+    </div>
+  </section>
+
+  <!-- 3 · hábitos -->
+  <section class="scene" id="s-habits">
+    <div id="hab-word" class="abs mega outline" style="left:-40px;top:70px;font-size:300px">HABITS HABITS HABITS</div>
+    <div class="window" id="hab-win" style="left:300px;top:150px;width:1320px">
+      <div class="bar"><i></i><i></i><i></i><b>cavern.app / início</b></div>
+      <div class="view" style="height:780px"><div id="hab-screen" style="position:absolute;left:0;top:0;width:2880px;height:1800px;transform-origin:0 0">
+        <img src="shots/d-home.png" style="width:2880px">
+        <svg id="hab-checks" class="abs" style="left:0;top:0" width="2880" height="1800"></svg>
+      </div></div>
+    </div>
+    <div class="abs" style="left:140px;top:870px;z-index:5;text-shadow:0 6px 30px rgba(0,0,0,.8)"><div class="kicker" id="hab-k">01 — Habits</div><div class="mega" id="hab-t" style="font-size:96px;margin-top:12px">Tick. Repeat. Grow.</div></div>
+  </section>
+
+  <!-- 4 · foco -->
+  <section class="scene" id="s-focus">
+    <svg id="focus-ring" class="abs" width="900" height="900" viewBox="0 0 900 900" style="left:510px;top:90px">
+      <circle cx="450" cy="450" r="400" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="18"/>
+      <circle id="focus-arc" cx="450" cy="450" r="400" fill="none" stroke="url(#fgrad)" stroke-width="18" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 450 450)"/>
+      <defs><linearGradient id="fgrad" x1="0" x2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#9c7de8"/></linearGradient></defs>
+      <g id="focus-ticks"></g>
+    </svg>
+    <div id="focus-time" class="abs mega" style="left:0;right:0;top:400px;text-align:center;font-size:230px;font-variant-numeric:tabular-nums;letter-spacing:-.02em">00:00:00</div>
+    <div class="abs hud" id="focus-sub" style="left:0;right:0;top:660px;text-align:center;font-size:26px">Em foco · Showreel</div>
+    <div class="window" id="focus-win" style="left:1260px;top:600px;width:560px"><div class="bar"><i></i><i></i><i></i></div><div class="view" style="height:330px"><img src="shots/d-focus.png"></div></div>
+    <div class="abs" style="left:140px;top:850px"><div class="kicker" id="focus-k">02 — Deep focus</div><div class="mega" id="focus-t" style="font-size:96px;margin-top:12px">Time, made visible.</div></div>
+  </section>
+
+  <!-- 5 · academia -->
+  <section class="scene" id="s-gym">
+    <svg id="gym-chart" class="abs" width="1250" height="620" viewBox="0 0 1250 620" style="left:110px;top:150px;overflow:visible">
+      <defs>
+        <linearGradient id="garea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9c7de8" stop-opacity=".5"/><stop offset="1" stop-color="#9c7de8" stop-opacity="0"/></linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g id="gym-grid"></g>
+      <path id="gym-area" fill="url(#garea)"/>
+      <path id="gym-line" fill="none" stroke="#b79cff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" pathLength="100"/>
+      <g id="gym-dots"></g>
+    </svg>
+    <div class="abs" style="left:150px;top:90px"><div class="hud">Supino reto com barra · maior carga por treino</div></div>
+    <div id="gym-delta" class="abs mega" style="left:150px;top:640px;font-size:150px;color:var(--green)">+0 kg</div>
+    <div class="phone" id="gym-phone" style="left:1420px;top:150px"><div class="notch"></div><div class="glass"><img src="shots/m-gym.png"></div></div>
+    <div class="abs" style="left:150px;top:850px"><div class="kicker" id="gym-k">03 — Train &amp; track</div><div class="mega" id="gym-t" style="font-size:96px;margin-top:12px">Every rep, charted.</div></div>
+  </section>
+
+  <!-- 6 · assistente IA -->
+  <section class="scene" id="s-ai">
+    <img src="shots/d-advisor.png" class="abs" id="ai-bg" style="left:-200px;top:-140px;width:2400px;filter:blur(18px) brightness(.35) saturate(1.2)">
+    <div class="abs" style="left:150px;top:96px"><div class="kicker" id="ai-k">04 — AI advisor</div><div class="mega" id="ai-t" style="font-size:96px;margin-top:12px">Ask your own data.</div></div>
+    <div class="bubble me" id="ai-me" style="right:150px;top:330px"><small>Você</small>Como mantenho minha sequência nesta semana?</div>
+    <div class="bubble ai" id="ai-typing" style="left:150px;top:520px"><span class="typing"><i></i><i></i><i></i></span></div>
+    <div class="bubble ai" id="ai-reply" style="left:150px;top:520px;width:1160px;max-width:1160px"><small>Orientador · Gemini</small><span id="ai-text"></span></div>
+    <div class="chip" id="ai-chip1" style="left:1380px;top:640px">60 days streak</div>
+    <div class="chip" id="ai-chip2" style="left:1380px;top:720px">40 → 55 kg</div>
+    <div class="chip" id="ai-chip3" style="left:1380px;top:800px">Privacy first</div>
+  </section>
+
+  <!-- 7 · conquistas -->
+  <section class="scene" id="s-ach">
+    <div id="ach-carousel" class="abs" style="left:960px;top:560px;transform-style:preserve-3d"></div>
+    <svg id="ach-ring" class="abs" width="360" height="360" viewBox="0 0 360 360" style="left:780px;top:70px">
+      <circle cx="180" cy="180" r="150" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="20"/>
+      <circle id="ach-arc" cx="180" cy="180" r="150" fill="none" stroke="#9c7de8" stroke-width="20" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 180 180)" style="filter:drop-shadow(0 0 14px #9c7de8)"/>
+    </svg>
+    <div id="ach-count" class="abs mega" style="left:780px;top:150px;width:360px;text-align:center;font-size:120px">0</div>
+    <div class="abs hud" style="left:780px;top:280px;width:360px;text-align:center">of 18 unlocked</div>
+    <div class="abs" style="left:150px;top:850px"><div class="kicker" id="ach-k">05 — Achievements</div><div class="mega" id="ach-t" style="font-size:96px;margin-top:12px">Earn every badge.</div></div>
+  </section>
+
+  <!-- 8 · mural de telas -->
+  <section class="scene" id="s-wall">
+    <div id="wall" class="abs" style="left:960px;top:540px;transform-style:preserve-3d"></div>
+    <div class="flashword" id="flashword"></div>
+  </section>
+
+  <!-- 9 · plataformas -->
+  <section class="scene" id="s-phones">
+    <div id="ph-word" class="abs mega outline" style="left:0;right:0;top:330px;text-align:center;font-size:280px">ANYWHERE</div>
+    <div class="phone" id="ph1"><div class="notch"></div><div class="glass"><img src="shots/m-home.png"><div class="sheen"></div></div></div>
+    <div class="phone" id="ph2"><div class="notch"></div><div class="glass"><img src="shots/m-achievements.png"><div class="sheen"></div></div></div>
+    <div class="phone" id="ph3"><div class="notch"></div><div class="glass"><img src="shots/m-focus.png"><div class="sheen"></div></div></div>
+    <div class="abs" style="left:0;right:0;top:960px;text-align:center"><div class="kicker" id="ph-k">Web · Android · Desktop · Offline first</div></div>
+  </section>
+
+  <!-- 10 · encerramento -->
+  <section class="scene" id="s-out">
+    <svg id="out-fire" class="abs" viewBox="-60 -110 120 120" width="240" height="240" style="left:840px;top:230px;overflow:visible">
+      <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="url(#fg)"/>
+      <path d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#fff1b0"/>
+    </svg>
+    <div id="out-logo" class="abs mega" style="left:0;right:0;top:500px;text-align:center;font-size:170px;letter-spacing:.2em;padding-left:.2em">CAVERN</div>
+    <div id="out-tag" class="abs" style="left:0;right:0;top:700px;text-align:center;font-size:44px;font-weight:600;color:#e7e2f5">Light it every day.</div>
+    <div id="out-credit" class="abs hud" style="left:0;right:0;top:800px;text-align:center">Motion design &amp; code · Showreel 2026</div>
+  </section>
+
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+  <div id="letterbox"></div>
+  <div id="brandmark">CAVERN</div>
+  <div id="timecode">00:00:00</div>
+  <div id="progressbar"><i></i></div>
+</div>
+
+<script>
+// ===================== utilitários =====================
+const DURATION = 20, FPS = 60, BEAT = 0.5
+const $ = id => document.getElementById(id)
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const lerp = (a, b, t) => a + (b - a) * t
+const prog = (t, a, b) => clamp((t - a) / (b - a))
+const E = {
+  outExpo: x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x),
+  inExpo: x => x === 0 ? 0 : Math.pow(2, 10 * x - 10),
+  inOutExpo: x => x === 0 ? 0 : x === 1 ? 1 : x < .5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2,
+  outCubic: x => 1 - Math.pow(1 - x, 3),
+  inOutCubic: x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
+  inCubic: x => x * x * x,
+  outBack: x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2) },
+  outElastic: x => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - .75) * (2 * Math.PI / 3)) + 1,
+  outQuint: x => 1 - Math.pow(1 - x, 5),
+}
+const tw = (t, a, b, ease = E.outExpo) => ease(prog(t, a, b))
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let r = Math.imul(seed ^ seed >>> 15, 1 | seed); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296 } }
+const noise1 = (x, s = 0) => Math.sin(x * 1.7 + s) * .5 + Math.sin(x * 3.1 + s * 2.3) * .3 + Math.sin(x * 7.3 + s * .7) * .2
+function set(el, o) { const s = (typeof el === 'string' ? $(el) : el).style; for (const k in o) s[k] = o[k] }
+function show(el, on) { (typeof el === 'string' ? $(el) : el).style.visibility = on ? 'visible' : 'hidden' }
+// pulso decaindo a cada batida (para "punch" no ritmo)
+const beatPulse = (t, from = 0, to = 99) => t < from || t > to ? 0 : Math.exp(-((t - from) % BEAT) * 9)
+// momentos de impacto (flash, shake, aberração cromática)
+const HITS = [1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0]
+const hitAmount = t => HITS.reduce((m, h) => t >= h ? Math.max(m, Math.exp(-(t - h) * 7)) : m, 0)
+
+// ===================== construção =====================
+// logo letra a letra
+$('logo').innerHTML = [...'CAVERN'].map(c => `<span class="mask"><span>${c}</span></span>`).join('')
+// checks sobre as linhas reais de hábitos (coordenadas da captura 2880×1800)
+const checkRows = [840, 991, 1140, 1290]
+$('hab-checks').innerHTML = checkRows.map((y, i) => `<g id="chk${i}" transform="translate(714 ${y})"><circle r="24" fill="#9c7de8"/><path d="M-11 1L-3 9L12-8" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/><rect id="row${i}" x="-258" y="-66" width="2080" height="132" rx="20" fill="#9c7de8" opacity="0"/></g>`).join('')
+// marcas do relógio de foco
+$('focus-ticks').innerHTML = Array.from({ length: 60 }, (_, i) => { const a = i / 60 * Math.PI * 2; const r1 = i % 5 ? 440 : 432, r2 = 448; return `<line x1="${450 + Math.sin(a) * r1}" y1="${450 - Math.cos(a) * r1}" x2="${450 + Math.sin(a) * r2}" y2="${450 - Math.cos(a) * r2}" stroke="rgba(255,255,255,${i % 5 ? .12 : .35})" stroke-width="${i % 5 ? 2 : 4}"/>` }).join('')
+// gráfico da academia com os dados reais semeados
+const loads = [40, 42.5, 45, 45, 47.5, 50, 52.5, 55]
+const gx = i => 60 + i * (1130 / (loads.length - 1)), gy = v => 560 - (v - 38) / (57 - 38) * 520
+const linePath = loads.map((v, i) => `${i ? 'L' : 'M'}${gx(i)} ${gy(v)}`).join(' ')
+$('gym-line').setAttribute('d', linePath)
+$('gym-area').setAttribute('d', `${linePath} L${gx(loads.length - 1)} 600 L${gx(0)} 600 Z`)
+$('gym-grid').innerHTML = [40, 45, 50, 55].map(v => `<line x1="40" x2="1210" y1="${gy(v)}" y2="${gy(v)}" stroke="rgba(255,255,255,.08)" stroke-dasharray="6 10" stroke-width="2"/><text x="0" y="${gy(v) + 8}" fill="rgba(241,242,238,.45)" font-family="Bahnschrift" font-size="22">${v}</text>`).join('')
+$('gym-dots').innerHTML = loads.map((v, i) => `<g transform="translate(${gx(i)} ${gy(v)})"><circle id="gd${i}" r="13" fill="#0b0b0e" stroke="#b79cff" stroke-width="6"/></g>`).join('')
+// carrossel de conquistas (cartões reais)
+const achCards = 6
+$('ach-carousel').innerHTML = Array.from({ length: achCards }, (_, i) => `<img id="ac${i}" src="shots/el-ach-${i}.png" style="position:absolute;width:440px;left:-220px;top:-250px;border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.6);backface-visibility:hidden">`).join('')
+// mural de telas
+const wallShots = ['d-finance', 'd-checkins', 'd-shop', 'd-cavern', 'l-home', 'd-goals', 'd-habits', 'l-achievements', 'd-gym', 'd-achievements', 'd-focus', 'd-advisor']
+$('wall').innerHTML = wallShots.map((s, i) => `<div class="tile" id="wt${i}"><img src="shots/${s}.png"></div>`).join('')
+const words = ['FINANCE', 'CHECK-INS', 'SHOP', 'CAVERNS']
+const aiFull = 'Você está com 60 dias seguidos — a maior sequência até agora. Seus treinos subiram de 40 kg para 55 kg no supino. Para proteger a sequência: treine pela manhã e use sessões de foco curtas nos dias corridos.'
+const aiWords = aiFull.split(' ')
+
+// ===================== partículas e pós-processamento =====================
+const bg = $('bg').getContext('2d'), fx = $('fx').getContext('2d')
+function sprite(color, size) { const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); const r = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2); r.addColorStop(0, color); r.addColorStop(.25, color.replace(/[\d.]+\)$/, '.55)')); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, size, size); return c }
+const sprEmber = sprite('rgba(255,170,90,1)', 64), sprPurple = sprite('rgba(176,140,255,1)', 64), sprGold = sprite('rgba(255,214,120,1)', 64)
+const R = rng(7)
+const embers = Array.from({ length: 220 }, () => ({ x: R() * 1920, y: R() * 1300, s: 4 + R() * 22, v: 40 + R() * 160, ph: R() * 10, amp: 10 + R() * 50, warm: R() < .72, tw: R() * 6 }))
+const confetti = Array.from({ length: 160 }, () => ({ a: R() * Math.PI * 2, v: 500 + R() * 1100, spin: (R() - .5) * 20, size: 8 + R() * 14, hue: [265, 30, 45, 200, 140][Math.floor(R() * 5)], g: 900 + R() * 600 }))
+const grains = Array.from({ length: 6 }, (_, k) => { const c = document.createElement('canvas'); c.width = 480; c.height = 270; const g = c.getContext('2d'); const d = g.createImageData(480, 270); const r = rng(100 + k); for (let i = 0; i < d.data.length; i += 4) { const v = r() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255 } g.putImageData(d, 0, 0); return c })
+
+function drawBackground(t, intensity, purpleMix) {
+  bg.clearRect(0, 0, 1920, 1080)
+  // vazamentos de luz que passeiam pela tela
+  bg.globalCompositeOperation = 'lighter'
+  const leaks = [[.25, .8, 'rgba(255,120,50,'], [.8, .25, 'rgba(140,100,255,'], [.55, .55, 'rgba(255,90,120,']]
+  leaks.forEach(([fx0, fy0, col], k) => {
+    const x = 1920 * (fx0 + Math.sin(t * .35 + k * 2) * .12), y = 1080 * (fy0 + Math.cos(t * .28 + k) * .1)
+    const g = bg.createRadialGradient(x, y, 0, x, y, 900)
+    g.addColorStop(0, col + (.10 * intensity).toFixed(3) + ')'); g.addColorStop(1, col + '0)')
+    bg.fillStyle = g; bg.fillRect(0, 0, 1920, 1080)
+  })
+  // brasas subindo
+  for (const p of embers) {
+    const y = ((p.y - p.v * t) % 1300 + 1300) % 1300 - 110
+    const x = p.x + Math.sin(t * 1.3 + p.ph) * p.amp
+    const flick = .55 + .45 * Math.sin(t * 9 + p.tw)
+    const life = clamp((1080 - y) / 1080)
+    const a = intensity * flick * (.25 + life * .75)
+    if (a < .02) continue
+    bg.globalAlpha = Math.min(1, a)
+    const spr = p.warm ? (purpleMix > .5 && p.s < 12 ? sprPurple : sprEmber) : sprPurple
+    bg.drawImage(spr, x - p.s, y - p.s, p.s * 2, p.s * 2)
+  }
+  bg.globalAlpha = 1; bg.globalCompositeOperation = 'source-over'
+}
+
+function drawFx(t, frame) {
+  fx.clearRect(0, 0, 1920, 1080)
+  // confete na explosão das conquistas (12 s)
+  const ct = t - 12.0
+  if (ct > 0 && ct < 2.2) {
+    for (const c of confetti) {
+      const x = 960 + Math.cos(c.a) * c.v * ct * .9, y = 260 + Math.sin(c.a) * c.v * ct * .7 + .5 * c.g * ct * ct
+      fx.save(); fx.translate(x, y); fx.rotate(c.spin * ct); fx.globalAlpha = clamp(1 - ct / 2.2)
+      fx.fillStyle = `hsl(${c.hue} 85% 66%)`; fx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2); fx.restore()
+    }
+  }
+  // faíscas do impacto da ignição (1 s) e do final (18 s)
+  for (const [h, cx, cy] of [[1.0, 960, 560], [18.0, 960, 360]]) {
+    const st = t - h
+    if (st > 0 && st < 1.4) {
+      const r = rng(h * 100)
+      for (let i = 0; i < 90; i++) {
+        const a = r() * Math.PI * 2, v = 300 + r() * 900, x = cx + Math.cos(a) * v * st, y = cy + Math.sin(a) * v * st + 600 * st * st
+        fx.globalAlpha = clamp(1 - st / 1.4) * (.5 + r() * .5); const s = 6 + r() * 16
+        fx.globalCompositeOperation = 'lighter'; fx.drawImage(r() < .5 ? sprGold : sprEmber, x - s, y - s, s * 2, s * 2)
+      }
+      fx.globalCompositeOperation = 'source-over'
+    }
+  }
+  fx.globalAlpha = 1
+  // vinheta
+  const v = fx.createRadialGradient(960, 540, 420, 960, 540, 1200)
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.72)')
+  fx.fillStyle = v; fx.fillRect(0, 0, 1920, 1080)
+  // grão de filme
+  fx.globalAlpha = .055; fx.globalCompositeOperation = 'overlay'
+  fx.drawImage(grains[frame % grains.length], 0, 0, 1920, 1080)
+  fx.globalAlpha = 1; fx.globalCompositeOperation = 'source-over'
+}
+
+// ===================== cenas =====================
+const scenes = [
+  ['s-open', 0, 2.25], ['s-hero', 1.95, 4.1], ['s-habits', 3.9, 6.1], ['s-focus', 5.9, 8.1], ['s-gym', 7.9, 10.1],
+  ['s-ai', 9.9, 12.1], ['s-ach', 11.9, 14.1], ['s-wall', 13.9, 16.1], ['s-phones', 15.9, 18.15], ['s-out', 17.9, 20],
+]
+
+// transição padrão: entra com escala/blur rápido, sai com zoom-push
+function sceneEnvelope(el, t, a, b) {
+  const inP = tw(t, a, a + .35, E.outExpo), outP = tw(t, b - .3, b, E.inExpo)
+  set(el, { opacity: (inP * (1 - outP)).toFixed(3), transform: `scale(${lerp(1.08, 1, inP) * lerp(1, 1.18, outP)})`, filter: `blur(${(1 - inP) * 14 + outP * 18}px)` })
+}
+// título com máscara (kicker + linha grande)
+function titleIn(kId, tId, t, a) {
+  set(kId, { transform: `translateX(${(1 - tw(t, a, a + .5)) * -60}px)`, opacity: tw(t, a, a + .4) })
+  const tt = $(tId); tt.style.clipPath = `inset(0 ${(1 - tw(t, a + .08, a + .7, E.outQuint)) * 100}% 0 0)`
+  tt.style.transform = `translateY(${(1 - tw(t, a + .08, a + .7)) * 30}px)`
+}
+const pad = n => String(Math.floor(n)).padStart(2, '0')
+
+function render(t) {
+  const frame = Math.round(t * FPS)
+  // câmera global: tremor nos impactos + respiração lenta
+  const hit = hitAmount(t)
+  const shakeX = noise1(t * 40, 1) * hit * 14, shakeY = noise1(t * 40, 5) * hit * 10
+  set('stage', { transform: `translate(${shakeX}px, ${shakeY}px)` })
+  // aberração cromática simulada no impacto
+  const ca = hit * 6
+  document.querySelectorAll('.scene').forEach(s => { s.style.textShadow = ca > .3 ? `${ca}px 0 rgba(255,60,90,.55), ${-ca}px 0 rgba(60,200,255,.55)` : 'none' })
+  set('flash', { opacity: (Math.max(...[1.0, 18.0].map(h => t >= h ? Math.exp(-(t - h) * 11) : 0)) * .42 + hit * .06).toFixed(3) })
+  // barras de cinema no começo e no fim
+  const lb = 110 * (1 - tw(t, 1.0, 2.2, E.inOutCubic)) + 110 * tw(t, 18.4, 19.6, E.inOutCubic)
+  $('letterbox').style.setProperty('--lb', `${lb}px`)
+  $('timecode').textContent = `${pad(t)}:${pad((t % 1) * FPS)} · ${String(frame).padStart(4, '0')}`
+  set($('progressbar').firstElementChild, { width: `${t / DURATION * 100}%` })
+  const chromeOn = tw(t, 2.2, 2.8) * (1 - tw(t, 18.3, 18.8))
+  set('timecode', { opacity: chromeOn }); set('brandmark', { opacity: chromeOn }); set('progressbar', { opacity: chromeOn })
+
+  // fundo: intensidade das brasas acompanha a história
+  const intensity = t < 1 ? .25 + t * .4 : t > 19.3 ? lerp(1, 0, prog(t, 19.3, 20)) : .9 + beatPulse(t, 2, 18) * .35
+  drawBackground(t, intensity, prog(t, 9.5, 14))
+
+  for (const [id, a, b] of scenes) { const on = t >= a && t <= b; show(id, on); if (on) sceneEnvelope($(id), t, a, b) }
+  // a abertura e o final não usam o blur de entrada
+  if (t < .4) set('s-open', { opacity: 1, filter: 'none', transform: 'none' })
+  if (t > 19.6) set('s-out', { filter: 'none' })
+
+  // ---------- 1 · abertura ----------
+  if (t <= 2.25) {
+    const ign = tw(t, .95, 1.5, E.outElastic)
+    const pre = tw(t, 0, 1.0, E.inCubic)
+    const fl = $('fire-big'); const wob = noise1(t * 6) * .06
+    set(fl, { transform: `translateY(${lerp(320, 0, pre)}px) scale(${t < 1 ? lerp(.05, .14, pre) : lerp(.14, 1, ign)}) scaleY(${1 + wob}) skewX(${noise1(t * 5, 2) * 4}deg)`, opacity: t < .15 ? t / .15 : 1, filter: `drop-shadow(0 0 ${40 + hit * 80}px rgba(255,140,60,.8))` })
+    $('fb-core').style.transform = `scale(${1 + noise1(t * 11, 3) * .08})`
+    $('fb-core').style.transformOrigin = '50% 100%'; $('fb-core').style.transformBox = 'fill-box'
+    const letters = $('logo').querySelectorAll('.mask > span')
+    letters.forEach((s, i) => { const p = tw(t, 1.35 + i * .06, 1.85 + i * .06, E.outExpo); s.style.transform = `translateY(${(1 - p) * 110}%) rotate(${(1 - p) * 8}deg)` })
+    set('logo', { textShadow: `0 0 ${30 + hit * 60}px rgba(156,125,232,.7)` })
+    set('open-tag', { opacity: tw(t, 1.7, 2.0), letterSpacing: `${lerp(.6, .32, tw(t, 1.7, 2.1))}em` })
+  }
+
+  // ---------- 2 · herói ----------
+  if (t >= 1.95 && t <= 4.1) {
+    const l = t - 2
+    const pop = tw(t, 2.05, 2.75, E.outElastic)
+    const squash = 1 + Math.sin(prog(t, 2.05, 2.6) * Math.PI) * .18
+    set('mascot', { transform: `translateY(${(1 - tw(t, 2.0, 2.45, E.outCubic)) * 300}px) scale(${lerp(.6, 1, pop)})` })
+    const mb = $('m-body'); mb.style.transformBox = 'fill-box'; mb.style.transformOrigin = '50% 100%'
+    mb.style.transform = `scale(${1 / squash + Math.sin(l * 4) * .01}, ${squash - Math.sin(l * 4) * .01})`
+    // piscada
+    const blink = (t > 3.05 && t < 3.17) ? .1 : 1
+    document.querySelectorAll('.m-eye').forEach(e => { e.style.transformBox = 'fill-box'; e.style.transformOrigin = 'center'; e.style.transform = `scaleY(${blink})` })
+    $('m-arm').style.transform = `rotate(${Math.sin(l * 7) * 2}deg)`
+    const cr = $('m-crown'); cr.style.transformBox = 'fill-box'; cr.style.transformOrigin = '50% 100%'
+    cr.style.transform = `translateY(${(1 - tw(t, 2.5, 2.95, E.outBack)) * -160}px) rotate(${(1 - tw(t, 2.5, 3.0, E.outElastic)) * -25}deg)`
+    cr.style.opacity = tw(t, 2.5, 2.6)
+    const mf = $('m-fire'); mf.style.transform = `scale(${1 + noise1(t * 7) * .08}, ${1 + noise1(t * 6, 4) * .14}) skewX(${noise1(t * 5) * 5}deg)`
+    set('m-glow', { opacity: .18 + noise1(t * 8) * .08 })
+    const n = Math.round(60 * tw(t, 2.3, 3.6, E.outCubic))
+    $('hero-count').textContent = n
+    set('hero-count', { transform: `scale(${1 + beatPulse(t, 2, 4) * .05})` })
+    set('hero-k', { opacity: tw(t, 2.2, 2.5), transform: `translateX(${(1 - tw(t, 2.2, 2.7)) * 40}px)` })
+    set('hero-sub', { opacity: tw(t, 2.6, 2.9), letterSpacing: `${lerp(.8, .4, tw(t, 2.6, 3.2))}em` })
+    set('hero-word', { transform: `translateX(${lerp(260, -260, prog(t, 2, 4.1))}px)` })
+  }
+
+  // ---------- 3 · hábitos ----------
+  if (t >= 3.9 && t <= 6.1) {
+    const iris = tw(t, 3.95, 4.45, E.inOutExpo)
+    $('s-habits').style.clipPath = t < 4.5 ? `circle(${iris * 1300}px at 960px 560px)` : 'none'
+    const k = 1320 / 2880
+    $('hab-screen').style.transform = `scale(${k})`
+    const ry = lerp(-24, 8, tw(t, 4.0, 6.1, E.inOutCubic)), rx = lerp(14, 4, tw(t, 4.0, 5.0))
+    set('hab-win', { transform: `translateZ(${lerp(-500, 0, tw(t, 4.0, 4.9))}px) rotateY(${ry}deg) rotateX(${rx}deg)` })
+    $('hab-screen').style.transform = `scale(${k}) translateY(${-lerp(0, 280, tw(t, 4.6, 6.0, E.inOutCubic))}px)`
+    checkRows.forEach((_, i) => {
+      const a = 4.5 + i * BEAT * .5 + .25
+      const p = tw(t, a, a + .3, E.outBack)
+      const g = $('chk' + i)
+      g.querySelector('circle').setAttribute('r', (24 * p).toFixed(2))
+      g.querySelector('path').setAttribute('stroke-dashoffset', (1 - tw(t, a + .1, a + .35)).toFixed(3))
+      $('row' + i).setAttribute('opacity', (Math.exp(-Math.max(0, t - a) * 4) * .28 * (t > a ? 1 : 0)).toFixed(3))
+    })
+    set('hab-word', { transform: `translateX(${lerp(0, -900, prog(t, 3.9, 6.1))}px)` })
+    titleIn('hab-k', 'hab-t', t, 4.3)
+  }
+
+  // ---------- 4 · foco ----------
+  if (t >= 5.9 && t <= 8.1) {
+    const p = tw(t, 6.0, 7.9, E.inOutCubic)
+    const secs = Math.round(lerp(0, 24 * 60 + 18, tw(t, 6.05, 7.4, E.outCubic)))
+    $('focus-time').textContent = `00:${pad(secs / 60)}:${pad(secs % 60)}`
+    $('focus-arc').setAttribute('stroke-dasharray', `${(p * 81).toFixed(2)} 100`)
+    set('focus-ring', { transform: `rotate(${lerp(-40, 0, tw(t, 6, 7))}deg) scale(${lerp(.7, 1, tw(t, 6, 6.8, E.outBack))})` })
+    set('focus-time', { transform: `scale(${lerp(1.4, 1, tw(t, 6, 6.6, E.outExpo)) + beatPulse(t, 6, 8) * .03})`, letterSpacing: `${lerp(.2, -.02, tw(t, 6, 6.7))}em` })
+    set('focus-sub', { opacity: tw(t, 6.4, 6.8) })
+    set('focus-win', { transform: `translateX(${(1 - tw(t, 6.6, 7.3, E.outQuint)) * 700}px) rotateY(${lerp(-35, -12, tw(t, 6.6, 8))}deg)` })
+    titleIn('focus-k', 'focus-t', t, 6.35)
+  }
+
+  // ---------- 5 · academia ----------
+  if (t >= 7.9 && t <= 10.1) {
+    const dp = tw(t, 8.05, 9.3, E.inOutCubic)
+    $('gym-line').setAttribute('stroke-dasharray', `${(dp * 100).toFixed(2)} 100`)
+    $('gym-area').style.clipPath = `inset(0 ${(1 - dp) * 100}% 0 0)`
+    loads.forEach((_, i) => { const a = 8.05 + (i / (loads.length - 1)) * 1.25; const s = tw(t, a, a + .3, E.outBack); $('gd' + i).setAttribute('r', (13 * s).toFixed(2)); $('gd' + i).setAttribute('fill', i === loads.length - 1 ? '#b79cff' : '#0b0b0e') })
+    $('gym-delta').textContent = `+${(15 * tw(t, 8.1, 9.4, E.outCubic)).toFixed(1).replace('.', ',')} kg`
+    set('gym-delta', { opacity: tw(t, 8.1, 8.4), transform: `scale(${1 + beatPulse(t, 8, 10) * .04})` })
+    set('gym-chart', { transform: `perspective(1600px) rotateX(${lerp(18, 6, tw(t, 8, 10))}deg) translateY(${lerp(40, 0, tw(t, 8, 8.8))}px)` })
+    set('gym-phone', { transform: `translateY(${(1 - tw(t, 8.4, 9.2, E.outQuint)) * 900}px) rotateZ(${lerp(14, 4, tw(t, 8.4, 10))}deg) rotateY(${lerp(-30, -14, tw(t, 8.4, 10))}deg)` })
+    titleIn('gym-k', 'gym-t', t, 8.35)
+  }
+
+  // ---------- 6 · IA ----------
+  if (t >= 9.9 && t <= 12.1) {
+    set('ai-bg', { transform: `translate(${lerp(0, -120, prog(t, 9.9, 12.1))}px, ${lerp(0, -40, prog(t, 9.9, 12.1))}px) scale(1.05)` })
+    titleIn('ai-k', 'ai-t', t, 10.0)
+    const me = tw(t, 10.2, 10.6, E.outBack)
+    set('ai-me', { opacity: tw(t, 10.2, 10.35), transform: `translateY(${(1 - me) * 60}px) scale(${lerp(.85, 1, me)})`, transformOrigin: '100% 100%' })
+    const typingOn = t > 10.55 && t < 10.95
+    set('ai-typing', { opacity: typingOn ? tw(t, 10.55, 10.65) : 0, transform: `scale(${lerp(.8, 1, tw(t, 10.55, 10.7, E.outBack))})`, transformOrigin: '0 0' })
+    $('ai-typing').querySelectorAll('i').forEach((d, i) => { d.style.transform = `translateY(${Math.sin(t * 14 - i * .9) * -7}px)`; d.style.opacity = .5 + Math.sin(t * 14 - i * .9) * .3 })
+    const rp = tw(t, 10.95, 11.25, E.outBack)
+    set('ai-reply', { opacity: t > 10.95 ? tw(t, 10.95, 11.05) : 0, transform: `translateY(${(1 - rp) * 50}px) scale(${lerp(.9, 1, rp)})`, transformOrigin: '0 0' })
+    const nWords = Math.round(aiWords.length * tw(t, 11.0, 11.85, x => x))
+    $('ai-text').innerHTML = aiWords.slice(0, nWords).join(' ') + (nWords < aiWords.length && t > 11 ? '<span style="color:#9c7de8">▍</span>' : '')
+    ;['ai-chip1', 'ai-chip2', 'ai-chip3'].forEach((c, i) => { const a = 11.3 + i * .12; const p = tw(t, a, a + .4, E.outBack); set(c, { opacity: tw(t, a, a + .15), transform: `translateX(${(1 - p) * 120}px) scale(${lerp(.8, 1, p)})` }) })
+  }
+
+  // ---------- 7 · conquistas ----------
+  if (t >= 11.9 && t <= 14.1) {
+    const spin = lerp(-70, 110, tw(t, 11.95, 14.1, E.inOutCubic))
+    const spread = tw(t, 11.95, 12.6, E.outExpo)
+    for (let i = 0; i < achCards; i++) {
+      const ang = i / achCards * 360 + spin
+      const rad = ang * Math.PI / 180
+      const z = Math.cos(rad)
+      set('ac' + i, { transform: `rotateY(${ang}deg) translateZ(${lerp(0, 700, spread)}px) scale(${lerp(.4, 1, spread)})`, filter: `brightness(${lerp(.45, 1.1, (z + 1) / 2)})` })
+    }
+    set('ach-carousel', { transform: `rotateX(-8deg) translateY(${lerp(200, 0, spread)}px)` })
+    const ap = tw(t, 12.0, 13.2, E.outCubic)
+    $('ach-arc').setAttribute('stroke-dasharray', `${(ap * 61).toFixed(2)} 100`)
+    $('ach-count').textContent = Math.round(11 * ap)
+    set('ach-count', { transform: `scale(${1 + beatPulse(t, 12, 14) * .06})` })
+    set('ach-ring', { transform: `scale(${lerp(.5, 1, tw(t, 11.95, 12.5, E.outBack))}) rotate(${lerp(-90, 0, tw(t, 11.95, 12.8))}deg)` })
+    titleIn('ach-k', 'ach-t', t, 12.3)
+  }
+
+  // ---------- 8 · mural ----------
+  if (t >= 13.9 && t <= 16.1) {
+    const cols = 4
+    const dolly = tw(t, 13.9, 16.1, E.inOutCubic)
+    set('wall', { transform: `translateZ(${lerp(-900, -200, dolly)}px) rotateX(${lerp(38, 22, dolly)}deg) rotateZ(${lerp(-14, -6, dolly)}deg) translate(${lerp(400, -500, dolly)}px, ${lerp(120, -80, dolly)}px)` })
+    wallShots.forEach((_, i) => {
+      const c = i % cols, r = Math.floor(i / cols)
+      const a = 14.0 + ((c + r) % 4) * BEAT * .5
+      const f = tw(t, a, a + .45, E.outBack)
+      set('wt' + i, { left: `${(c - cols / 2) * 690}px`, top: `${(r - 1.5) * 450}px`, transform: `rotateY(${(1 - f) * 100}deg) translateZ(${(1 - f) * 300 + Math.sin(t * 2 + i) * 20}px)`, opacity: tw(t, a, a + .15) })
+    })
+    const wi = Math.floor((t - 14.0) / BEAT)
+    const fw = $('flashword')
+    if (t >= 14.0 && wi < words.length) {
+      fw.textContent = words[wi]
+      const lp = ((t - 14.0) % BEAT) / BEAT
+      set(fw, { opacity: lp < .75 ? 1 : 1 - (lp - .75) * 4, transform: `translateY(-50%) scale(${lerp(1.25, 1, E.outExpo(lp))})`, letterSpacing: `${lerp(.12, -.04, E.outExpo(lp))}em` })
+    } else set(fw, { opacity: 0 })
+  }
+
+  // ---------- 9 · telefones ----------
+  if (t >= 15.9 && t <= 18.15) {
+    const pp = [tw(t, 16.0, 16.7, E.outQuint), tw(t, 16.12, 16.82, E.outQuint), tw(t, 16.24, 16.94, E.outQuint)]
+    const pos = [[-470, -10, 18, 6], [0, -40, 0, 0], [470, -10, -18, -6]]
+    ;['ph1', 'ph2', 'ph3'].forEach((id, i) => {
+      const [x, y, ry, rz] = pos[i]
+      const drift = Math.sin(t * 1.6 + i) * 10
+      set(id, { left: `${960 - 190 + x * pp[i]}px`, top: `${110 + y + drift + (1 - pp[i]) * 950}px`, transform: `rotateY(${ry * pp[i]}deg) rotateZ(${rz * pp[i]}deg) scale(${i === 1 ? 1.06 : .96})` })
+      $(id).querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, 16.8 + i * .1, 17.6 + i * .1))}%)`
+    })
+    set('ph-word', { transform: `scale(${lerp(.8, 1.05, prog(t, 15.9, 18.1))})`, opacity: .9 })
+    set('ph-k', { opacity: tw(t, 16.6, 17), letterSpacing: `${lerp(.9, .5, tw(t, 16.6, 17.4))}em` })
+  }
+
+  // ---------- 10 · encerramento ----------
+  if (t >= 17.9) {
+    const ig = tw(t, 18.0, 18.6, E.outElastic)
+    set('out-fire', { transform: `scale(${lerp(0, 1, ig)}) scaleY(${1 + noise1(t * 6) * .07}) skewX(${noise1(t * 5) * 4}deg)`, filter: `drop-shadow(0 0 ${50 + Math.sin(t * 8) * 10}px rgba(255,140,60,.85))` })
+    const lp = tw(t, 18.15, 18.9, E.outExpo)
+    set('out-logo', { opacity: lp, letterSpacing: `${lerp(.8, .2, lp)}em`, filter: `blur(${(1 - lp) * 20}px)`, textShadow: `0 0 50px rgba(156,125,232,.6)` })
+    set('out-tag', { opacity: tw(t, 18.5, 18.9), transform: `translateY(${(1 - tw(t, 18.5, 19)) * 30}px)` })
+    set('out-credit', { opacity: tw(t, 18.8, 19.2) })
+    const fade = tw(t, 19.45, 20, E.inCubic)
+    set('s-out', { opacity: 1 - fade })
+  }
+
+  drawFx(t, frame)
+}
+
+window.render = render
+window.ready = Promise.all([...document.images].map(i => i.decode().catch(() => {})))
+// pré-visualização em tempo real ao abrir o arquivo
+if (location.search.includes('play')) { const t0 = performance.now(); const loop = now => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop) }; window.ready.then(() => requestAnimationFrame(loop)) }
+else render(0)
+</script>
+</body>
+</html>

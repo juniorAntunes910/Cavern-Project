@@ -30,6 +30,11 @@ const browser = await chromium.launch({
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
 const page = await context.newPage()
 const errors = []
+// O app usa um seletor customizado (role=combobox); escolhe a opção pelo valor.
+async function selectValue(trigger, value) {
+  await trigger.click()
+  await page.locator(`.select-menu [data-value="${value}"]`).click()
+}
 page.on('pageerror', error => errors.push(error.message))
 await page.goto('http://127.0.0.1:5173/')
 await page.getByRole('heading', { name: 'Seu dia, no seu ritmo' }).waitFor()
@@ -84,7 +89,7 @@ for (const route of ['/habits', '/goals', '/focus', '/gym', '/books', '/finance'
   await page.goto(`http://127.0.0.1:5173${route}`)
   const fits = await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth)
   assert(fits, `Rolagem horizontal em ${route}`)
-  const unnamed = await page.locator('input:not([type="hidden"]), select, textarea, button').evaluateAll(elements => elements.filter(element => {
+  const unnamed = await page.locator('input:not([type="hidden"]):not(.select-validity), select, textarea, button').evaluateAll(elements => elements.filter(element => {
     const ownLabel = element.getAttribute('aria-label') || element.getAttribute('aria-labelledby') || element.getAttribute('title')
     const associated = 'labels' in element && element.labels?.length
     const text = element.tagName === 'BUTTON' ? element.textContent?.trim() : ''
@@ -141,13 +146,13 @@ await financeGoalForm.locator('.number-stepper input').fill('1500')
 await financeGoalForm.getByRole('button', { name: 'Criar meta financeira' }).click()
 await page.getByRole('heading', { name: 'Reserva de teste' }).waitFor()
 const transactionForm = page.locator('.finance-layout form').first()
-await transactionForm.locator('select').first().selectOption('buy_btc')
+await selectValue(transactionForm.locator('.select-trigger').first(), 'buy_btc')
 await transactionForm.locator('input[type="number"]').first().fill('1000')
 await transactionForm.locator('input[type="number"]').nth(1).fill('1')
 await transactionForm.locator('details summary').click()
 await transactionForm.locator('input[type="date"]').fill('2026-09-10')
 await transactionForm.getByRole('button', { name: 'Salvar lançamento' }).click()
-await transactionForm.locator('select').first().selectOption('sell_btc')
+await selectValue(transactionForm.locator('.select-trigger').first(), 'sell_btc')
 await transactionForm.locator('input[type="number"]').first().fill('600')
 await transactionForm.locator('input[type="number"]').nth(1).fill('0.5')
 await transactionForm.locator('input[type="date"]').fill('2026-09-20')
@@ -166,7 +171,7 @@ await page.getByRole('button', { name: 'Fui à academia' }).click()
 console.log('gym attendance', await page.getByRole('button', { name: 'Fui à academia' }).getAttribute('class'))
 await page.goto('http://127.0.0.1:5173/goals')
 await page.locator('form input').first().fill('Treinar na semana')
-await page.locator('form select').first().selectOption('workouts')
+await selectValue(page.locator('form .select-trigger').first(), 'workouts')
 await page.getByRole('button', { name: 'Criar meta' }).click()
 console.log('workout goal', await page.locator('.goal-card').first().locator('strong').first().textContent())
 await page.goto('http://127.0.0.1:5173/cavern')
@@ -266,7 +271,7 @@ await page.locator('.confirm-dialog').getByRole('button', { name: 'Excluir' }).c
 await page.getByRole('heading', { name: 'Caminhar em 7 dias' }).waitFor({ state: 'detached' })
 assert(!await page.evaluate(goalId => JSON.parse(localStorage.getItem('cavern.local.goal-habit-links.v1') || '[]').some(link => link.goal_id === goalId), goalIdToDelete), 'Deleting goal retained habit links')
 await page.locator('form').first().locator('input').first().fill('Meta manual de teste')
-await page.locator('form').first().locator('select').first().selectOption('custom')
+await selectValue(page.locator('form').first().locator('.select-trigger').first(), 'custom')
 await page.locator('form').first().locator('.number-stepper input').fill('3')
 await page.getByRole('button', { name: 'Criar meta' }).click()
 const manualGoal = page.locator('.goal-card').filter({ hasText: 'Meta manual de teste' })

@@ -1,3 +1,4 @@
+import { Select } from '../../../components/Select'
 import { useState } from 'react'
 import { AiDataConsentDialog } from './AiDataConsentDialog'
 import { aiDataCategories, saveAiDataConsent, type AiDataCategory, type AiMetric } from '../services/ai-data.service'
@@ -28,7 +29,7 @@ export function AiWeeklyReview() {
   return <section className="panel ai-review" aria-labelledby="ai-weekly-title">
     <div><p className="eyebrow">REVISÃO LOCAL</p><h2 id="ai-weekly-title">Revisão dos registros</h2><p>Veja fatos e perguntas calculados no aparelho. Os dados podem estar incompletos; nenhum passo é aplicado automaticamente.</p></div>
     <div className="ai-review-controls">
-      <label htmlFor="ai-review-period">Período<select id="ai-review-period" value={periodDays} onChange={event => setPeriodDays(Number(event.target.value))}><option value={7}>Últimos 7 dias</option><option value={30}>Últimos 30 dias</option><option value={180}>Últimos 180 dias</option></select></label>
+      <label htmlFor="ai-review-period">Período<Select compact id="ai-review-period" value={periodDays} onChange={event => setPeriodDays(Number(event.target.value))}><option value={7}>Últimos 7 dias</option><option value={30}>Últimos 30 dias</option><option value={180}>Últimos 180 dias</option></Select></label>
       <button type="button" onClick={() => setConsentOpen(true)}>{review ? 'Criar nova revisão' : 'Criar revisão'}</button>
     </div>
     {review && review.days !== periodDays && <p className="ai-review-note" role="status">A revisão exibida usa {review.days} dias. Crie uma nova revisão para aplicar o período escolhido.</p>}

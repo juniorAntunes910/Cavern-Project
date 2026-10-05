@@ -1,3 +1,4 @@
+import { Select } from '../components/Select'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -61,9 +62,9 @@ export function Habits() {
         <div><p className="eyebrow">NOVO HÁBITO</p><h2>Comece uma prática</h2><p>Dê um nome ao hábito. Os detalhes podem esperar.</p></div>
         <label>Nome<input required value={name} placeholder="Ex.: Caminhar 20 minutos" onChange={event => setName(event.target.value)} /></label>
         <details className="form-details"><summary>Adicionar detalhes (opcional)</summary><div className="form-details-content">
-          <label>Categoria<select value={category} onChange={event => setCategory(event.target.value as HabitCategory)}>{categories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label>
+          <label>Categoria<Select value={category} onChange={event => setCategory(event.target.value as HabitCategory)}>{categories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</Select></label>
           <label>Descrição<input value={description} placeholder="Opcional" onChange={event => setDescription(event.target.value)} /></label>
-          <label>Tipo<select value={type} onChange={event => setType(event.target.value as HabitType)}><option value="positive">Hábito positivo</option><option value="abstinence">Abstinência — Sem X</option></select></label>
+          <label>Tipo<Select value={type} onChange={event => setType(event.target.value as HabitType)}><option value="positive">Hábito positivo</option><option value="abstinence">Abstinência — Sem X</option></Select></label>
           <GoalSelector goals={goals} selected={goalIds} onChange={setGoalIds} />
         </div></details>
         <button>Criar hábito</button>
@@ -107,7 +108,7 @@ function HabitCard({ habit, goals, logDate, logStatus, onLog, onClear, onDelete 
     <div className="habit-actions"><button disabled={logStatus === 'completed' || beforeStart} onClick={() => onLog(habit, 'completed')}>{logStatus === 'completed' ? `Concluído em ${formatDay(logDate)}` : `Concluir em ${formatDay(logDate)}`}</button>{logStatus && <span className="habit-status">{logStatus === 'completed' ? 'Concluído' : logStatus === 'failed' ? 'Falha registrada' : 'Dia pulado'}</span>}</div>
     {beforeStart && <small className="muted">Este hábito começou em {formatLongDay(habit.started_at)}.</small>}
     <details className="habit-secondary"><summary>Outras ações</summary>
-      {editing && <form className="habit-edit-form" onSubmit={save}><div className="goal-edit habit-edit"><label>Nome<input required value={draftName} onChange={event => setDraftName(event.target.value)} /></label><label>Categoria<select value={draftCategory} onChange={event => setDraftCategory(event.target.value as HabitCategory)}>{categories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label></div><div className="button-row"><button>Salvar alterações</button><button type="button" className="subtle" onClick={cancelEdit}>Cancelar edição</button></div></form>}
+      {editing && <form className="habit-edit-form" onSubmit={save}><div className="goal-edit habit-edit"><label>Nome<input required value={draftName} onChange={event => setDraftName(event.target.value)} /></label><label>Categoria<Select value={draftCategory} onChange={event => setDraftCategory(event.target.value as HabitCategory)}>{categories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</Select></label></div><div className="button-row"><button>Salvar alterações</button><button type="button" className="subtle" onClick={cancelEdit}>Cancelar edição</button></div></form>}
       <fieldset className="goal-selector"><legend>Metas vinculadas</legend>{goals.length ? goals.map(goal => <label key={goal.id}><input type="checkbox" checked={selected.includes(goal.id)} onChange={event => toggleGoal(goal.id, event.target.checked)} /> {goal.title}</label>) : <p>Crie uma meta para vincular.</p>}</fieldset>
       <div className="habit-actions">
         {logStatus && <button className="subtle" onClick={() => onClear(habit)}>Desfazer registro</button>}

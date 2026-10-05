@@ -1,3 +1,5 @@
+import './gym/gym-progress.css'
+import { Select } from '../components/Select'
 import { useMemo, useState } from "react";
 import { createId } from "../lib/id";
 import { today } from "../lib/local-store";
@@ -283,7 +285,7 @@ function PlanEditor({ plan, close }: { plan: WorkoutPlan; close: () => void }) {
         placeholder="Buscar supino, puxada..."
         onChange={(event) => setSearch(event.target.value)}
       />
-      <select
+      <Select
         value={group}
         onChange={(event) =>
           setGroup(event.target.value as ExerciseMuscleGroup | "ALL")
@@ -295,7 +297,7 @@ function PlanEditor({ plan, close }: { plan: WorkoutPlan; close: () => void }) {
             {muscleLabels[item]}
           </option>
         ))}
-      </select>
+      </Select>
       <div className="exercise-picker">
         {options.slice(0, 12).map((item) => (
           <button className="subtle" onClick={() => add(item)} key={item.id}>
@@ -575,7 +577,7 @@ function Progress({ sessions }: { sessions: WorkoutSession[] }) {
       <article className="panel">
         <p className="eyebrow">PESO CORPORAL DIÁRIO</p>
         <h2>
-          {weights.at(-1) ? `${weights.at(-1)?.weightKg} kg` : "Sem registro"}
+          {weights.at(-1) ? `${weights.at(-1)?.weightKg.toLocaleString("pt-BR")} kg` : "Sem registro"}
         </h2>
         <div className="inline-form gym-input-row">
           <input
@@ -616,17 +618,20 @@ function Progress({ sessions }: { sessions: WorkoutSession[] }) {
             </button>
           ))}
         </div>
-        <select
+        <Select
+          className="gym-exercise-select"
+          aria-label="Exercício registrado"
+          disabled={exercises.length === 0}
           value={exerciseId}
           onChange={(event) => setExerciseId(event.target.value)}
         >
-          <option value="">Escolha um exercício registrado</option>
+          <option value="">{exercises.length ? "Escolha um exercício registrado" : "Nenhum exercício registrado neste filtro"}</option>
           {exercises.map((item) => (
             <option value={item.id} key={item.id}>
               {item.name}
             </option>
           ))}
-        </select>
+        </Select>
         <LineChart
           title={
             exerciseId ? "Maior carga por treino" : "Selecione um exercício"
@@ -648,57 +653,81 @@ function LineChart({
   points: Array<{ label: string; value: number }>;
   suffix: string;
 }) {
+  const format = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + suffix;
   if (points.length < 2)
     return (
       <div className="gym-chart gym-chart-empty">
-        <div>
+        <div className="gym-chart-head">
           <strong>{title}</strong>
-          <span>—</span>
         </div>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-          <path d="M0 90H100" className="grid-line" />
-        </svg>
-        <small>
-          {points.length === 1
-            ? "Registre mais um treino para desenhar a evolução."
-            : "Ainda não há registros neste filtro."}
-        </small>
+        <div className="gym-chart-placeholder">
+          <span aria-hidden="true">{points.length === 1 ? "📈" : "✦"}</span>
+          <p>
+            {points.length === 1
+              ? `Primeiro registro: ${format(points[0].value)}. Registre mais um para desenhar a evolução.`
+              : "Ainda não há registros neste filtro."}
+          </p>
+        </div>
       </div>
     );
-  const max = Math.max(...points.map((point) => point.value));
-  const min = Math.min(...points.map((point) => point.value));
+  const values = points.map((point) => point.value);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
   const range = max - min || 1;
-  const path = points
-    .map(
-      (point, index) =>
-        `${index ? "L" : "M"} ${(index / (points.length - 1)) * 100} ${90 - ((point.value - min) / range) * 70}`,
-    )
-    .join(" ");
+  const x = (index: number) => (index / (points.length - 1)) * 100;
+  const y = (value: number) => 12 + (1 - (value - min) / range) * 76;
+  const line = points.map((point, index) => `${index ? "L" : "M"} ${x(index)} ${y(point.value)}`).join(" ");
+  const area = `${line} L 100 100 L 0 100 Z`;
+  const last = points[points.length - 1];
+  const delta = last.value - points[0].value;
+  const gradientId = `gym-fill-${title.replace(/\W+/g, "-")}`;
   return (
     <div className="gym-chart">
-      <div>
-        <strong>{title}</strong>
-        <span>
-          {points.at(-1)?.value.toLocaleString("pt-BR")}
-          {suffix}
-        </span>
+      <div className="gym-chart-head">
+        <div>
+          <strong>{title}</strong>
+          <small>{points.length} registros</small>
+        </div>
+        <span className="gym-chart-value">{format(last.value)}</span>
       </div>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label={title}>
-        <path d="M0 90H100" className="grid-line" />
-        <path d={path} className="line" />
-        {points.map((point, index) => (
-          <circle
-            key={`${point.label}-${index}`}
-            cx={(index / (points.length - 1)) * 100}
-            cy={90 - ((point.value - min) / range) * 70}
-            r="2.3"
-          />
-        ))}
-      </svg>
+      <div className="gym-chart-plot" role="img" aria-label={`${title}: de ${format(points[0].value)} para ${format(last.value)}`}>
+        <div className="gym-chart-axis" aria-hidden="true">
+          <small>{format(max)}</small>
+          <small>{format(min)}</small>
+        </div>
+        <div className="gym-chart-area">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--purple)" stopOpacity=".38" />
+                <stop offset="100%" stopColor="var(--purple)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[12, 50, 88].map((line) => (
+              <path key={line} d={`M0 ${line}H100`} className="grid-line" />
+            ))}
+            <path d={area} fill={`url(#${gradientId})`} />
+            <path d={line} className="line" />
+          </svg>
+          {points.map((point, index) => (
+            <i
+              key={`${point.label}-${index}`}
+              className={index === points.length - 1 ? "dot last" : "dot"}
+              style={{ left: `${x(index)}%`, top: `${y(point.value)}%` }}
+              title={`${point.label}: ${format(point.value)}`}
+            />
+          ))}
+        </div>
+      </div>
       <div className="chart-labels">
         <small>{points[0].label}</small>
-        <small>{points.at(-1)?.label}</small>
+        <small>{last.label}</small>
       </div>
+      <dl className="gym-chart-stats">
+        <div><dt>Maior</dt><dd>{format(max)}</dd></div>
+        <div><dt>Menor</dt><dd>{format(min)}</dd></div>
+        <div className={delta > 0 ? "up" : delta < 0 ? "down" : ""}><dt>Variação</dt><dd>{delta > 0 ? "+" : ""}{format(delta)}</dd></div>
+      </dl>
     </div>
   );
 }

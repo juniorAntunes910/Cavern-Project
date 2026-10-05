@@ -1,3 +1,4 @@
+import { Select } from '../components/Select'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -53,10 +54,10 @@ export function Goals() {
       <form className="panel form" onSubmit={create}>
         <h2>Nova meta</h2>
         <label>Título<input required value={title} placeholder="Ex.: praticar por 7 dias" onChange={event => setTitle(event.target.value)} /></label>
-        <label>Métrica<select value={metric} onChange={event => setMetric(event.target.value as GoalMetric)}>{metrics.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label>
+        <label>Métrica<Select value={metric} onChange={event => setMetric(event.target.value as GoalMetric)}>{metrics.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</Select></label>
         <NumberStepper label="Alvo" value={target} min={1} onChange={setTarget} suffix={metricInfo.unit} required wholeNumbers />
         <details className="form-details"><summary>Ajustar período e datas</summary><div className="form-details-content">
-          <label>Período<select value={period} onChange={event => setPeriod(event.target.value as GoalPeriod)}><option value="total">Até a data final</option><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></label>
+          <label>Período<Select value={period} onChange={event => setPeriod(event.target.value as GoalPeriod)}><option value="total">Até a data final</option><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></Select></label>
           <div className="date-pair"><label>Início<input required type="date" value={startDate} onChange={event => setStartDate(event.target.value)} /></label><label>Fim<input required min={startDate} type="date" value={endDate} onChange={event => setEndDate(event.target.value)} /></label></div>
         </div></details>
         <button>Criar meta</button>
@@ -115,7 +116,7 @@ function GoalCard({ goal, onDelete }: { goal: LocalGoal; onDelete: () => void })
     {goal.metric === 'study_minutes' && <p className="linked-habits">Selecione esta meta ao iniciar uma sessão de Foco para contar os minutos.</p>}
     {editing && <form className="goal-edit-form" onSubmit={save}>
       <label>Título<input required value={draftTitle} onChange={event => setDraftTitle(event.target.value)} /></label>
-      <div className="date-pair"><NumberStepper label="Alvo" value={draftTarget} min={1} onChange={setDraftTarget} suffix={goal.unit} required wholeNumbers /><label>Período<select value={draftPeriod} onChange={event => setDraftPeriod(event.target.value as GoalPeriod)}><option value="total">Até a data final</option><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></label></div>
+      <div className="date-pair"><NumberStepper label="Alvo" value={draftTarget} min={1} onChange={setDraftTarget} suffix={goal.unit} required wholeNumbers /><label>Período<Select value={draftPeriod} onChange={event => setDraftPeriod(event.target.value as GoalPeriod)}><option value="total">Até a data final</option><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></Select></label></div>
       <div className="date-pair"><label>Início<input required type="date" value={draftStart} onChange={event => setDraftStart(event.target.value)} /></label><label>Fim<input required type="date" min={draftStart} value={draftEnd} onChange={event => setDraftEnd(event.target.value)} /></label></div>
       {showHabitLinks && <fieldset className="goal-selector"><legend>Hábitos desta meta</legend>{habits.length ? habits.map(habit => <label key={habit.id}><input type="checkbox" checked={draftHabitIds.includes(habit.id)} onChange={event => toggleHabit(habit.id, event.target.checked)} /> {habit.name}</label>) : <p>Crie um hábito primeiro.</p>}</fieldset>}
       <div className="button-row"><button>Salvar alterações</button><button type="button" className="subtle" onClick={cancelEdit}>Descartar alterações</button></div>

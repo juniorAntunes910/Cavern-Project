@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useEffect, useMemo, useState } from 'react'
 import { addLocalFocusSession, finishLocalFocusSession, getLocalFocusSessions, getLocalGoals, getLocalHabits, MINIMUM_FOCUS_SECONDS, updateLocalFocusSession } from '../../lib/local-store'
 import { getChallenges } from '../challenges/services/challenge.repository'
@@ -71,9 +72,9 @@ export function Focus() {
       </> : <div className="focus-start">
         <label>Em que vai focar? (opcional)<input value={project} placeholder="Ex.: estudar, escrever, planejar" onChange={event => setProject(event.target.value)} /></label>
         <details className="form-details"><summary>Relacionar à Caverna, meta ou hábito</summary><div className="form-details-content">
-          <label>Caverna<select value={challengeId} onChange={event => setChallengeId(event.target.value)}><option value="">Nenhuma</option>{challenges.map(challenge => <option key={challenge.id} value={challenge.id}>{challenge.name}</option>)}</select></label>
-          <label>Meta<select value={goalId} onChange={event => setGoalId(event.target.value)}><option value="">Nenhuma</option>{goals.map(goal => <option key={goal.id} value={goal.id}>{goal.title}</option>)}</select></label>
-          <label>Hábito<select value={habitId} onChange={event => setHabitId(event.target.value)}><option value="">Nenhum</option>{habits.map(habit => <option key={habit.id} value={habit.id}>{habit.name}</option>)}</select></label>
+          <label>Caverna<Select value={challengeId} onChange={event => setChallengeId(event.target.value)}><option value="">Nenhuma</option>{challenges.map(challenge => <option key={challenge.id} value={challenge.id}>{challenge.name}</option>)}</Select></label>
+          <label>Meta<Select value={goalId} onChange={event => setGoalId(event.target.value)}><option value="">Nenhuma</option>{goals.map(goal => <option key={goal.id} value={goal.id}>{goal.title}</option>)}</Select></label>
+          <label>Hábito<Select value={habitId} onChange={event => setHabitId(event.target.value)}><option value="">Nenhum</option>{habits.map(habit => <option key={habit.id} value={habit.id}>{habit.name}</option>)}</Select></label>
         </div></details>
         <button onClick={start}>Iniciar foco</button>
       </div>}

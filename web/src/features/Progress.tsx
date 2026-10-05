@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CountUp } from "../components/CountUp";
+import { prefersReducedMotion } from "../lib/motion";
 import { NavLink } from "react-router-dom";
 import "./progress.css";
 import {
@@ -224,7 +226,7 @@ function FireJourney({ streak }: { streak: number }) {
         <StreakScene level={level} loadout={loadout} />
       </div>
       <strong className="fire-count">
-        {streak}
+        <CountUp value={streak} />
         <small>{streak === 1 ? "dia seguido" : "dias seguidos"}</small>
       </strong>
     </section>
@@ -239,6 +241,28 @@ export function StreakScene({
   loadout: ReturnType<typeof getLocalCustomization>;
 }) {
   const scale = [0, 0.6, 0.8, 1, 1.15][level];
+  const sceneRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    // Os olhos do mascote acompanham o ponteiro (até 4 unidades do SVG), sem re-renderizar.
+    if (prefersReducedMotion()) return;
+    let frame = 0;
+    const look = (event: PointerEvent) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const svg = sceneRef.current;
+        if (!svg) return;
+        const box = svg.getBoundingClientRect();
+        const dx = event.clientX - (box.left + (90 * box.width) / 300);
+        const dy = event.clientY - (box.top + (106 * box.height) / 200);
+        const distance = Math.hypot(dx, dy) || 1;
+        const reach = Math.min(1, distance / 260) * 4;
+        svg.style.setProperty("--ex", String((dx / distance) * reach));
+        svg.style.setProperty("--ey", String((dy / distance) * reach));
+      });
+    };
+    window.addEventListener("pointermove", look, { passive: true });
+    return () => { window.removeEventListener("pointermove", look); cancelAnimationFrame(frame); };
+  }, []);
   const fire = (
     {
       "fire-blue": ["#3b9dff", "#b5e7ff"],
@@ -252,6 +276,7 @@ export function StreakScene({
   const mascotShadow = loadout.mascot_id === 'bot-copper' ? '#94603e' : loadout.mascot_id === 'bot-moss' ? '#4d7852' : '#69529f';
   return (
     <svg
+      ref={sceneRef}
       className="streak-scene"
       viewBox="0 0 300 200"
       role="img"
@@ -263,7 +288,7 @@ export function StreakScene({
     >
       <ellipse cx="150" cy="179" rx="130" ry="10" fill="#000" opacity=".12" />
       {loadout.mascot_id === "bat" ? (
-        <g transform="translate(37 61)">
+        <g className="scene-mascot scene-bat"><g transform="translate(37 61)">
           <path
             d="M52 45Q19 8 0 35Q13 44 6 63Q29 61 43 77Q55 61 78 63Q71 44 85 35Q66 8 33 45Z"
             fill="#6b558a"
@@ -275,8 +300,8 @@ export function StreakScene({
               <path d="M45 27Q68 27 77 35Q57 33 43 31Z" fill="#23649e" />
             </>
           )}
-          <circle cx="35" cy="42" r="3" fill="#ffcf73" />
-          <circle cx="51" cy="42" r="3" fill="#ffcf73" />
+          <circle className="scene-eye" cx="35" cy="42" r="3" fill="#ffcf73" />
+          <circle className="scene-eye" cx="51" cy="42" r="3" fill="#ffcf73" />
           {loadout.accessory_item_id === "glasses" && (
             <>
               <circle
@@ -298,9 +323,9 @@ export function StreakScene({
               <path d="M42 42H44" stroke="#7fc7e8" strokeWidth="2" />
             </>
           )}
-        </g>
+        </g></g>
       ) : (
-        <g>
+        <g className="scene-mascot">
           {loadout.body_item_id === 'cloak' && <path d="M54 75Q35 89 26 161Q89 194 154 160Q143 92 123 74Z" fill="#633e92" stroke="#af83dc" strokeWidth="3" />}
           <path
             d="M39 159Q20 119 48 76Q62 48 89 39Q117 49 136 81Q159 121 135 159Z"
@@ -312,8 +337,8 @@ export function StreakScene({
             d="M52 133V107Q52 67 89 62Q127 67 127 107V133Q92 153 52 133Z"
             fill="#20202c"
           />
-          <ellipse cx="75" cy="106" rx="6" ry="8" fill="#ffcf73" />
-          <ellipse cx="106" cy="106" rx="6" ry="8" fill="#ffcf73" />
+          <ellipse className="scene-eye" cx="75" cy="106" rx="6" ry="8" fill="#ffcf73" />
+          <ellipse className="scene-eye" cx="106" cy="106" rx="6" ry="8" fill="#ffcf73" />
           <path
             d={level === 0 ? "M84 127H97" : "M83 122Q90 132 98 122"}
             fill="none"
@@ -381,6 +406,7 @@ export function StreakScene({
       {loadout.mascot_id === 'bat' && loadout.accessory_item_id === 'star-glasses' && <path d="M72 95L75 101L82 102L77 108L78 115L72 111L66 115L67 108L62 102L69 101Z M89 95L92 101L99 102L94 108L95 115L89 111L83 115L84 108L79 102L86 101Z" fill="none" stroke="#ffd371" strokeWidth="2" />}
       {level > 0 && (
         <ellipse
+          className="scene-glow"
           cx="225"
           cy="165"
           rx="43"
@@ -400,17 +426,22 @@ export function StreakScene({
           className="scene-fire"
           transform={"translate(223 163) scale(" + scale + ")"}
         >
+          <g className="scene-flame">
           <path
             d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z"
             fill={fire[0]}
           />
           <path
+            className="scene-flame-core"
             d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z"
             fill={fire[1]}
           />
+          </g>
+          {[-12, 6, -3, 14, -8].map((x, index) => <circle className="scene-spark" key={index} cx={x} cy={-38 - index * 4} r={index % 2 ? 1.8 : 2.4} fill={fire[1]} />)}
         </g>
       ) : (
         <path
+          className="scene-smoke"
           d="M221 144Q209 130 223 118M231 117Q242 101 231 91"
           stroke="#96949e"
           strokeWidth="3"
