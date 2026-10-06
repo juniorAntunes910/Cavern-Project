@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:desktop": "tsc -b && vite build --mode desktop",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,8 +22,8 @@
     "preview": "vite preview",
     "android:sync": "npm run build && cap sync android",
     "apk:debug": "npm run android:sync && node scripts/build-apk.mjs",
-    "desktop:package": "npm run build && electron-builder --win nsis",
-    "desktop:portable": "npm run build && electron-builder --win portable"
+    "desktop:package": "npm run build:desktop && electron-builder --win nsis",
+    "desktop:portable": "npm run build:desktop && electron-builder --win portable"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",

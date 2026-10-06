@@ -38,7 +38,7 @@ export function Progress() {
   const hasProgressData =
     logs.length > 0 || sessions.length > 0 || checkins.length > 0;
   const challenge = getChallenges().find((item) => item.status === "ACTIVE");
-  const now = new Date();
+  const now = new Date(`${today()}T12:00:00`);
   const current = monthRange(now.getFullYear(), now.getMonth());
   const previous = monthRange(now.getFullYear(), now.getMonth() - 1);
   const streak = overallStreak(logs);
@@ -561,7 +561,7 @@ function ActivityChart({
   );
 }
 function Calendar({ activeDates }: { activeDates: Set<string> }) {
-  const now = new Date();
+  const now = new Date(`${today()}T12:00:00`);
   const first = new Date(now.getFullYear(), now.getMonth(), 1);
   const offset = (first.getDay() + 6) % 7;
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();

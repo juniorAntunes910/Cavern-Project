@@ -16,6 +16,10 @@ function createWindow() {
     },
   })
 
+  // O app é local: nada de abrir janelas novas nem navegar para fora do arquivo carregado.
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.on('will-navigate', event => event.preventDefault())
+
   window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
 }
 

@@ -26,7 +26,7 @@ O **Cavern** é um aplicativo pessoal para transformar intenção em prática. A
 - **Funciona offline:** o service worker mantém a interface disponível sem conexão.
 - **Instalável:** use como PWA no Android, Chrome e Edge; também há empacotamento para Windows via Electron.
 - **Lembretes diários:** notificações opcionais para hábitos que ainda não foram concluídos.
-- **Sincronização opcional:** conecte um projeto Supabase quando quiser autenticação e dados remotos.
+- **Login opcional:** conecte um projeto Supabase para exigir conta e e-mail autorizado. Hoje o Supabase só cuida do acesso: os dados continuam neste dispositivo (use o backup do Perfil para trocar de aparelho). A sincronização remota ainda não está implementada; as migrations em `supabase/migrations/` são o schema previsto para ela.
 - **Tema claro ou escuro:** escolha o ambiente que combina com seu momento.
 
 ## Tecnologias

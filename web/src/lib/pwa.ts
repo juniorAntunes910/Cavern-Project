@@ -40,7 +40,8 @@ export async function installApp() {
 }
 
 export async function registerAppServiceWorker() {
-  if (!('serviceWorker' in navigator)) return null
+  // No Electron (file://) não existe service worker.
+  if (!('serviceWorker' in navigator) || window.location.protocol === 'file:') return null
   try {
     const registration = await navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' })
     void registration.update()
