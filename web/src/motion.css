@@ -305,3 +305,7 @@ html[data-motion='reduced'] .calendar-day:hover { transform: none; }
 /* Aviso de armazenamento cheio (cavern:storage-error) */
 .storage-alert { align-items: center; background: color-mix(in srgb, var(--danger) 16%, var(--surface)); border: 1px solid var(--danger); border-radius: 12px; bottom: 16px; box-shadow: 0 12px 34px rgba(0, 0, 0, .3); display: flex; gap: 12px; left: 16px; max-width: 560px; padding: 12px 14px; position: fixed; right: 16px; z-index: 60; animation: rise-in .3s var(--ease-out) backwards; }
 @media (min-width: 900px) { .storage-alert { left: auto; } }
+
+/* Textos digitados pelo usuário (nomes, títulos, observações) nunca devem alargar a página. */
+:is(h1, h2, h3, h4, p, strong, small, span, label, li, summary, td, th) { overflow-wrap: anywhere; }
+:is(.panel, .habit-card, .goal-card, .stack, .two-columns, .habits-layout, .habit-card-heading, .card-heading, .transaction) > * { min-width: 0; }

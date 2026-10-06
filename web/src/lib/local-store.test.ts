@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { gymDataKeys } from '../features/gym/services/gym.service'
 import { focusSession, goal, habit, habitLog, localAt, readingSession, resetStorage } from '../test/helpers'
 import { persistDatabaseValue } from './app-db'
-import { MAXIMUM_FOCUS_STRETCH_SECONDS, finishLocalFocusSession, focusStretchSeconds, getLocalFocusSessions, goalProgress, habitStreak, localDataKeys, memoizeByRevision, overallStreak, readCollection, writeCollection } from './local-store'
+import { MAXIMUM_FOCUS_STRETCH_SECONDS, closeStaleReadingSessions, getLocalReadingSessions, finishLocalFocusSession, focusStretchSeconds, getLocalFocusSessions, goalProgress, habitStreak, localDataKeys, memoizeByRevision, overallStreak, readCollection, writeCollection } from './local-store'
 
 const uniqueKey = () => `cavern.test.${crypto.randomUUID()}`
 type Item = { id: string }
@@ -247,5 +247,19 @@ describe('skipped days', () => {
   it('keeps the streak alive when today is skipped', () => {
     const logs = [habitLog('h1', '2026-10-04'), habitLog('h1', '2026-10-05'), habitLog('h1', '2026-10-06', 'skipped')]
     expect(habitStreak('h1', logs, '2026-10-06')).toBe(2)
+  })
+})
+
+describe('closeStaleReadingSessions', () => {
+  it('closes only sessions left open for hours, keeping their pages', () => {
+    const now = Date.parse('2026-10-06T12:00:00Z')
+    const old = { ...readingSession('2026-10-06T01:00:00.000Z', 7), ended_at: null }
+    const recent = { ...readingSession('2026-10-06T11:30:00.000Z', 2), ended_at: null }
+    writeCollection(localDataKeys.sessions, [old, recent])
+    expect(closeStaleReadingSessions(now)).toBe(1)
+    const [closed, open] = getLocalReadingSessions()
+    expect(closed.ended_at).toBe(old.started_at); expect(closed.pages_read).toBe(7); expect(closed.duration_seconds).toBe(0)
+    expect(open.ended_at).toBeNull()
+    expect(closeStaleReadingSessions(now)).toBe(0)
   })
 })

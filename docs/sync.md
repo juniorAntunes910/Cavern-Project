@@ -1,3 +1,5 @@
+> **Estado atual:** este documento descreve a sincronização planejada (originalmente para a base Flutter/Drift em `lib/`). O app web em `web/` ainda **não sincroniza**: usa o Supabase só para login e guarda os dados no navegador. Para trocar de aparelho, use o backup do Perfil.
+
 # Sincronização
 
 O modo inicial é local-first com sincronização eventual. Cada escrita confirma primeiro no Drift e recebe `synced_at = null`; a UI atualiza imediatamente. O `SyncService` é acionado por conectividade, abertura do app e ação manual, sem bloquear a navegação.

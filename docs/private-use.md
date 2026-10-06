@@ -13,4 +13,4 @@ O Cavern Project é destinado exclusivamente ao proprietário e seus dispositivo
 
 ## Distribuição
 
-Use no PC via `npm run dev` durante desenvolvimento. Para uso entre PC e celular, prefira uma rede privada (como Tailscale) ou um host com controle de acesso. Não utilize hospedagem estática pública.
+Use no PC via `npm run dev` durante desenvolvimento. Para uso entre PC e celular, prefira uma rede privada (como Tailscale) ou um host com controle de acesso. Não utilize hospedagem estática pública e não exponha o servidor de desenvolvimento (`npm run dev`) na internet por túneis (o antigo script de túnel público do Cloudflare foi removido por isso).

@@ -6,6 +6,9 @@ import { deletePdf, loadPdf, savePdf } from '../lib/pdf-store'
 
 const backupVersion = 2
 const dataKeys = [...Object.values(localDataKeys), ...Object.values(gymDataKeys)]
+// Perfil e personalização são objetos; todas as outras áreas são listas.
+const objectKeys = new Set<string>([localDataKeys.profile, localDataKeys.customization])
+const isPlainObject = (value: unknown) => typeof value === 'object' && value !== null && !Array.isArray(value)
 type PdfBackup = { id: string; data: string }
 
 async function currentValue(key: string) {
@@ -65,6 +68,8 @@ export function BackupSettings() {
       const data = JSON.parse(await file.text()) as { version?: number; records?: Record<string, unknown>; avatar?: unknown; pdfs?: PdfBackup[] }
       if ((data.version !== 1 && data.version !== backupVersion) || !data.records || typeof data.records !== 'object' || Array.isArray(data.records)) throw new Error('invalid')
       if (data.version === backupVersion && !Array.isArray(data.pdfs)) throw new Error('invalid')
+      // Valida o formato de cada área antes de gravar qualquer coisa: um arquivo adulterado ou corrompido não pode deixar o app em estado quebrado.
+      for (const key of dataKeys) { const value = data.records[key]; if (value !== undefined && !(objectKeys.has(key) ? isPlainObject(value) : Array.isArray(value))) throw new Error('invalid') }
       const pdfs = (data.pdfs ?? []).map(item => {
         if (!item || typeof item.id !== 'string' || typeof item.data !== 'string') throw new Error('invalid')
         return { id: item.id, bytes: decode(item.data) }
