@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { getLocalBooks, startReadingSession, finishReadingSession, updateLocalBook, updateReadingSession, type LocalBook } from '../lib/local-store'
 import { loadPdf } from '../lib/pdf-store'
@@ -8,7 +8,7 @@ import { openPdf, readablePdfError } from '../lib/pdf-reader'
 export function Reader() {
   const { id = '' } = useParams()
   const book = getLocalBooks().find(item => item.id === id)
-  return book ? <BookReader key={id} book={book} /> : <div className="empty">Livro não encontrado.</div>
+  return book ? <BookReader key={id} book={book} /> : <div className="empty">Livro não encontrado. <Link to="/books">Voltar para a biblioteca</Link></div>
 }
 
 function BookReader({ book }: { book: LocalBook }) {
@@ -129,12 +129,12 @@ function BookReader({ book }: { book: LocalBook }) {
     if (!pdf) return
     const safe = Math.max(1, Math.min(pdf.numPages, next))
     if (sessionId.current) updateReadingSession(sessionId.current, safe)
-    updateLocalBook(book.id, { current_page: safe, status: safe === pdf.numPages ? 'finished' : 'reading' })
-    setFinished(safe === pdf.numPages)
+    updateLocalBook(book.id, { current_page: safe, status: finished || safe === pdf.numPages ? 'finished' : 'reading' })
+    setFinished(finished || safe === pdf.numPages)
     pageRef.current = safe
     setPage(safe)
     stage.current?.scrollTo({ top: 0, left: 0 })
-  }, [book.id, pdf])
+  }, [book.id, pdf, finished])
 
   useEffect(() => {
     const sync = () => setFullscreen(document.fullscreenElement === reader.current)

@@ -60,7 +60,7 @@ export function Habits() {
     <section className="two-columns habits-layout">
       <form className="panel form habit-create-form" onSubmit={create}>
         <div><p className="eyebrow">NOVO HÁBITO</p><h2>Comece uma prática</h2><p>Dê um nome ao hábito. Os detalhes podem esperar.</p></div>
-        <label>Nome<input required value={name} placeholder="Ex.: Caminhar 20 minutos" onChange={event => setName(event.target.value)} /></label>
+        <label>Nome<input required value={name} placeholder="Ex.: Caminhar 20 minutos" onChange={event => setName(event.target.value)} /></label>{logDate !== today() && <small className="muted">Este hábito vai começar em {formatLongDay(logDate)}, a data escolhida em “Registrar atividade em”.</small>}
         <details className="form-details"><summary>Adicionar detalhes (opcional)</summary><div className="form-details-content">
           <label>Categoria<Select value={category} onChange={event => setCategory(event.target.value as HabitCategory)}>{categories.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</Select></label>
           <label>Descrição<input value={description} placeholder="Opcional" onChange={event => setDescription(event.target.value)} /></label>

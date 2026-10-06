@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { at, checkIn, habitLog, focusSession, readingSession, resetStorage } from '../../../test/helpers'
-import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, localDataKeys, writeCollection, type LocalFinanceTransaction, type LocalHabitLog, type LocalReadingSession, type LocalWorkout } from '../../../lib/local-store'
+import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, localDataKeys, localDay, writeCollection, type LocalFinanceTransaction, type LocalHabitLog, type LocalReadingSession, type LocalWorkout } from '../../../lib/local-store'
 import { gymDataKeys, getCompletedWorkoutCount } from '../../gym/services/gym.service'
 import type { WorkoutSession } from '../../gym/domain'
 import type { Challenge, ChallengeProgress, ChallengeRule, ChallengeRuleLog } from '../domain/challenge'
@@ -129,10 +129,10 @@ describe('calculateChallengeProgress against the brute-force reference', () => {
   function referenceValue(cycle: Challenge, item: ChallengeRule, from: string, to: string) {
     const range = (date: string) => date >= from && date <= to && date >= cycle.startDate && date <= cycle.endDate
     if (item.type === 'HABIT') return getLocalHabitLogs().filter(log => log.status === 'completed' && range(log.date) && (!item.linkedEntityId || log.habit_id === item.linkedEntityId)).length
-    if (item.type === 'READING_PAGES') return getLocalReadingSessions().filter(session => range(session.started_at.slice(0, 10))).reduce((sum, session) => sum + session.pages_read, 0)
-    if (item.type === 'READING_MINUTES') return Math.floor(getLocalReadingSessions().filter(session => range(session.started_at.slice(0, 10))).reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0) / 60)
+    if (item.type === 'READING_PAGES') return getLocalReadingSessions().filter(session => range(localDay(session.started_at)!)).reduce((sum, session) => sum + session.pages_read, 0)
+    if (item.type === 'READING_MINUTES') return Math.floor(getLocalReadingSessions().filter(session => range(localDay(session.started_at)!)).reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0) / 60)
     if (item.type === 'WORKOUT') return getCompletedWorkoutCount(from, to)
-    if (item.type === 'FOCUS_MINUTES') return Math.floor(getLocalFocusSessions().filter(session => session.status === 'completed' && session.ended_at && range(session.ended_at.slice(0, 10))).reduce((sum, session) => sum + session.duration_seconds, 0) / 60)
+    if (item.type === 'FOCUS_MINUTES') return Math.floor(getLocalFocusSessions().filter(session => session.status === 'completed' && session.ended_at && range(localDay(session.ended_at)!)).reduce((sum, session) => sum + session.duration_seconds, 0) / 60)
     if (item.type === 'CHECK_IN') return getLocalCheckIns().filter(entry => range(entry.date)).length
     if (item.type === 'FINANCIAL') return getLocalFinanceTransactions().filter(entry => range(entry.date) && (!item.linkedEntityId || entry.financial_goal_id === item.linkedEntityId)).length
     return getChallengeRuleLogs().filter(log => log.challengeId === cycle.id && log.ruleId === item.id && range(log.date)).reduce((sum, log) => sum + log.value, 0)
@@ -218,5 +218,15 @@ describe('calculateChallengeProgress against the brute-force reference', () => {
         expect(calculateChallengeProgress(cycle, date), `${cycle.id} on ${date}`).toEqual(referenceProgress(cycle, date))
       }
     }
+  })
+})
+
+describe('day bucketing', () => {
+  it('counts a late-evening session on the local day it happened, like goals do', () => {
+    const lateEvening = new Date(2026, 9, 6, 23, 30).toISOString() // 23:30 local; already 10-07 in UTC for zones behind UTC
+    writeCollection(localDataKeys.sessions, [readingSession(lateEvening, 5)])
+    const cycle = challenge({ startDate: '2026-10-06', endDate: '2026-10-07', durationDays: 2, rules: [rule({ id: 'pages', type: 'READING_PAGES', target: 5 })] })
+    expect(calculateChallengeProgress(cycle, '2026-10-06').today[0].current).toBe(5)
+    expect(calculateChallengeProgress(cycle, '2026-10-07').today[0].current).toBe(0)
   })
 })

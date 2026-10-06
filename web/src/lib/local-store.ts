@@ -27,6 +27,8 @@ export type LocalInventoryItem = { item_id: string; acquired_at: string; acquisi
 export type LocalCustomization = { fire_skin_id: string; mascot_id: string; head_item_id?: string; body_item_id?: string; accessory_item_id?: string; effect_item_id?: string }
 export type LocalProfile = { name: string; bio: string; focus: 'discipline' | 'reading' | 'fitness' | 'finance' | 'custom'; reminderTime: string; activeDays: number[]; weekStartsOn: 'monday' | 'sunday'; motion: 'full' | 'reduced' }
 export const MINIMUM_FOCUS_SECONDS = 5 * 60
+/** A running stretch longer than this is treated as forgotten: the timer stops counting there so an open tab left overnight does not become hours of focus. */
+export const MAXIMUM_FOCUS_STRETCH_SECONDS = 4 * 60 * 60
 
 export const localDataKeys = { goals: 'cavern.local.goals.v2', habits: 'cavern.local.habits.v1', habitLogs: 'cavern.local.habit-logs.v1', goalHabitLinks: 'cavern.local.goal-habit-links.v1', books: 'cavern.local.books.v1', sessions: 'cavern.local.reading-sessions.v1', checkins: 'cavern.local.checkins.v1', workouts: 'cavern.local.workouts.v1', financeTransactions: 'cavern.local.finance-transactions.v1', financialGoals: 'cavern.local.financial-goals.v1', challenges: 'cavern.local.challenges.v1', challengeRuleLogs: 'cavern.local.challenge-rule-logs.v1', focusSessions: 'cavern.local.focus-sessions.v1', xpLedger: 'cavern.local.xp-ledger.v1', rewards: 'cavern.local.reward-transactions.v1', inventory: 'cavern.local.inventory.v1', customization: 'cavern.local.customization.v1', timeline: 'cavern.local.timeline.v1', achievements: 'cavern.local.achievements.v1', profile: 'cavern.local.profile.v1' } as const
 const keys = localDataKeys
@@ -48,7 +50,11 @@ export function readCollection<T>(key: string): T[] {
   return items.slice() as T[]
 }
 export function writeCollection<T>(key: string, value: T[]) {
-  localStorage.setItem(key, JSON.stringify(value))
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch (error) {
+    // Cota cheia (ou armazenamento bloqueado): avisar a interface em vez de falhar em silêncio, e não fingir que salvou.
+    window.dispatchEvent(new Event('cavern:storage-error'))
+    throw error
+  }
   persistDatabaseValue(key, value)
   window.dispatchEvent(new Event('cavern:data-changed'))
 }
@@ -58,6 +64,8 @@ const write = writeCollection
 // Derived values (progress, achievements) are expensive to rebuild, so they are memoized until the next data change.
 let dataRevision = 0
 window.addEventListener('cavern:data-changed', () => { dataRevision++ })
+// Another tab wrote to localStorage: refresh this tab's screens and derived values so a later save starts from the latest data instead of overwriting it.
+window.addEventListener('storage', event => { if (event.key === null || event.key.startsWith('cavern.')) window.dispatchEvent(new Event('cavern:data-changed')) })
 /** Memoizes `compute` until the next 'cavern:data-changed' and, with `daily`, until the calendar day rolls over. */
 export function memoizeByRevision<T>(compute: () => T, { daily = false } = {}): () => T {
   let cached: { revision: number; day: string; value: T } | undefined
@@ -105,7 +113,9 @@ export function clearHabitLog(habitId: string, date: string) { const current = g
 export function getLocalFocusSessions() { return read<LocalFocusSession>(keys.focusSessions).sort((a, b) => b.started_at.localeCompare(a.started_at)) }
 export function addLocalFocusSession(session: Omit<LocalFocusSession, 'id' | 'status' | 'ended_at' | 'duration_seconds' | 'accumulated_seconds'>) { const created: LocalFocusSession = { ...session, id: id(), status: 'active', ended_at: null, duration_seconds: 0, accumulated_seconds: 0 }; const next = [created, ...getLocalFocusSessions()]; write(keys.focusSessions, next); return created }
 export function updateLocalFocusSession(sessionId: string, changes: Partial<LocalFocusSession>) { const next = getLocalFocusSessions().map(session => session.id === sessionId ? { ...session, ...changes } : session); write(keys.focusSessions, next); return next }
-export function finishLocalFocusSession(sessionId: string) { const current = getLocalFocusSessions().find(session => session.id === sessionId); if (!current) return undefined; const elapsed = current.status === 'active' ? Math.max(0, Math.round((Date.now() - new Date(current.resumed_at ?? current.started_at).getTime()) / 1000)) : 0; const total = current.accumulated_seconds + elapsed; const valid = total >= MINIMUM_FOCUS_SECONDS; updateLocalFocusSession(sessionId, { status: valid ? 'completed' : 'cancelled', resumed_at: null, ended_at: new Date().toISOString(), duration_seconds: total, accumulated_seconds: total }); if (!valid) return { total, valid }; if (total >= 1800) grantConfiguredReward('FOCUS_30_MINUTES', 'focus', sessionId, 'Foco concluído'); addLocalTimelineEvent({ type: 'focus', title: 'Foco concluído', description: `${Math.floor(total / 60)} minutos de foco` }); return { total, valid } }
+/** Seconds since the session last started/resumed (0 unless active), capped at MAXIMUM_FOCUS_STRETCH_SECONDS. */
+export function focusStretchSeconds(session: Pick<LocalFocusSession, 'status' | 'resumed_at' | 'started_at'>, now = Date.now()) { if (session.status !== 'active') return 0; return Math.min(MAXIMUM_FOCUS_STRETCH_SECONDS, Math.max(0, Math.round((now - new Date(session.resumed_at ?? session.started_at).getTime()) / 1000))) }
+export function finishLocalFocusSession(sessionId: string) { const current = getLocalFocusSessions().find(session => session.id === sessionId); if (!current) return undefined; const elapsed = focusStretchSeconds(current); const total = current.accumulated_seconds + elapsed; const valid = total >= MINIMUM_FOCUS_SECONDS; updateLocalFocusSession(sessionId, { status: valid ? 'completed' : 'cancelled', resumed_at: null, ended_at: new Date().toISOString(), duration_seconds: total, accumulated_seconds: total }); if (!valid) return { total, valid }; if (total >= 1800) grantConfiguredReward('FOCUS_30_MINUTES', 'focus', sessionId, 'Foco concluído'); addLocalTimelineEvent({ type: 'focus', title: 'Foco concluído', description: `${Math.floor(total / 60)} minutos de foco` }); return { total, valid } }
 
 export function getLocalXpEntries() { return read<LocalXpEntry>(keys.xpLedger) }
 export function awardLocalXp(sourceKey: string, points: number, title: string) { if (points <= 0 || getLocalXpEntries().some(entry => entry.source_key === sourceKey)) return false; write(keys.xpLedger, [{ id: id(), source_key: sourceKey, points, title, created_at: new Date().toISOString() }, ...getLocalXpEntries()]); return true }
@@ -145,6 +155,8 @@ export async function removeCavernsData() {
 }
 
 export function today() { return new Date().toLocaleDateString('en-CA') }
+/** Calendar day (local time zone, YYYY-MM-DD) of an ISO timestamp. Use it everywhere a timestamp is bucketed by day so goals and challenges agree. */
+export function localDay(iso: string | null | undefined) { if (!iso) return null; const date = new Date(iso); return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString('en-CA') }
 export function periodStart(period: GoalPeriod, date = today()) { const value = new Date(`${date}T12:00:00`); if (period === 'daily') return date; if (period === 'weekly') { const day = value.getDay() || 7; value.setDate(value.getDate() - day + 1) } else if (period === 'monthly') value.setDate(1); return value.toLocaleDateString('en-CA') }
 export function goalProgress(goal: LocalGoal, logs = getLocalHabitLogs()) {
   if (goal.metric === 'custom') return goal.manual_progress
@@ -183,7 +195,9 @@ export function goalProgress(goal: LocalGoal, logs = getLocalHabitLogs()) {
   }
   return 0
 }
-export function habitStreak(habitId: string, logs = getLocalHabitLogs(), date = today()) { const complete = new Set(logs.filter(log => log.habit_id === habitId && log.status === 'completed').map(log => log.date)); let cursor = date; if (!complete.has(cursor)) cursor = shiftDate(cursor, -1); let count = 0; while (complete.has(cursor)) { count++; cursor = shiftDate(cursor, -1) } return count }
-export function overallStreak(logs = getLocalHabitLogs(), date = today()) { const activeDates = new Set(logs.filter(log => log.status === 'completed').map(log => log.date)); let cursor = activeDates.has(date) ? date : shiftDate(date, -1); let count = 0; while (activeDates.has(cursor)) { count++; cursor = shiftDate(cursor, -1) } return count }
+// A skipped day ("Pular dia") is neutral: it neither counts nor breaks the run.
+export function habitStreak(habitId: string, logs = getLocalHabitLogs(), date = today()) { const own = logs.filter(log => log.habit_id === habitId); return runLength(new Set(own.filter(log => log.status === 'completed').map(log => log.date)), new Set(own.filter(log => log.status === 'skipped').map(log => log.date)), date) }
+export function overallStreak(logs = getLocalHabitLogs(), date = today()) { return runLength(new Set(logs.filter(log => log.status === 'completed').map(log => log.date)), new Set(logs.filter(log => log.status === 'skipped').map(log => log.date)), date) }
+function runLength(complete: Set<string>, skipped: Set<string>, date: string) { let cursor = complete.has(date) || skipped.has(date) ? date : shiftDate(date, -1); let count = 0; while (complete.has(cursor) || skipped.has(cursor)) { if (complete.has(cursor)) count++; cursor = shiftDate(cursor, -1) } return count }
 function shiftDate(date: string, days: number) { const value = new Date(`${date}T12:00:00`); value.setDate(value.getDate() + days); return value.toLocaleDateString('en-CA') }
 function habitMatchesGoal(habit: LocalHabit, goal: LocalGoal) { return goal.status === 'active' && (goal.metric === 'habit_days' || (goal.metric === 'workouts' && habit.category === 'workout')) }

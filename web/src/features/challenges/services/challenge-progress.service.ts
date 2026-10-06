@@ -1,5 +1,5 @@
 import { getChallengeRuleLogs } from './challenge.repository'
-import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, memoizeByRevision, today } from '../../../lib/local-store'
+import { getLocalCheckIns, getLocalFinanceTransactions, getLocalFocusSessions, getLocalHabitLogs, getLocalReadingSessions, localDay, memoizeByRevision, today } from '../../../lib/local-store'
 import { getWorkoutSessions } from '../../gym/services/gym.service'
 import type { Challenge, ChallengeProgress, ChallengeRule, ChallengeScoreCalculator, RuleProgress } from '../domain/challenge'
 
@@ -54,7 +54,7 @@ function sumSeries(series: Series | undefined, from: string, to: string) {
   return total
 }
 const ruleLogKey = (challengeId: string, ruleId: string) => `${challengeId}\n${ruleId}`
-// Reading and focus sessions are bucketed by the UTC date of their timestamps, as they always were.
+// Sessions are bucketed by the local calendar day of their timestamps, the same rule goalProgress uses.
 const challengeData = memoizeByRevision(() => {
   const habitLogs = getLocalHabitLogs().filter(log => log.status === 'completed')
   const reading = getLocalReadingSessions()
@@ -62,10 +62,10 @@ const challengeData = memoizeByRevision(() => {
   return {
     habits: bucket(habitLogs, log => log.date),
     habitsById: bucketBy(habitLogs, log => log.habit_id, log => log.date),
-    pages: bucket(reading, session => session.started_at?.slice(0, 10), session => session.pages_read),
-    readingSeconds: bucket(reading, session => session.started_at?.slice(0, 10), session => session.duration_seconds ?? 0),
-    focusSeconds: bucket(getLocalFocusSessions().filter(session => session.status === 'completed' && session.ended_at), session => session.ended_at?.slice(0, 10), session => session.duration_seconds),
-    workouts: bucket(getWorkoutSessions().filter(session => session.status === 'COMPLETED'), session => session.startedAt?.slice(0, 10)),
+    pages: bucket(reading, session => localDay(session.started_at), session => session.pages_read),
+    readingSeconds: bucket(reading, session => localDay(session.started_at), session => session.duration_seconds ?? 0),
+    focusSeconds: bucket(getLocalFocusSessions().filter(session => session.status === 'completed' && session.ended_at), session => localDay(session.ended_at), session => session.duration_seconds),
+    workouts: bucket(getWorkoutSessions().filter(session => session.status === 'COMPLETED'), session => localDay(session.startedAt)),
     checkins: bucket(getLocalCheckIns(), checkin => checkin.date),
     finance: bucket(finance, item => item.date),
     financeByGoal: bucketBy(finance, item => item.financial_goal_id, item => item.date),

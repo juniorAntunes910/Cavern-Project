@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getLocalCheckIns, saveLocalCheckIn, today, type LocalCheckIn } from '../lib/local-store'
 import { useLocalRevision } from '../lib/use-local-revision'
 import './checkin.css'
@@ -14,22 +14,28 @@ const displayDate = (date: string) => new Intl.DateTimeFormat('pt-BR', { day: '2
 
 export function CheckIn() {
   useLocalRevision()
-  const [date, setDate] = useState(today)
+  const [current, setCurrent] = useState(today)
+  const [picked, setPicked] = useState<string | null>(null)
+  const dirty = useRef(false)
   useEffect(() => {
-    const refresh = () => setDate(today())
+    // Na virada do dia a data muda sozinha, mas nunca enquanto há texto não salvo: o formulário remontaria e apagaria o que foi digitado.
+    const refresh = () => { if (!dirty.current) setCurrent(today()) }
     const timer = window.setInterval(refresh, 30_000)
     window.addEventListener('focus', refresh)
     return () => { clearInterval(timer); window.removeEventListener('focus', refresh) }
   }, [])
+  const date = picked ?? current
   const items = getLocalCheckIns()
+  function pick(value: string) { if (!value || value > current) return; dirty.current = false; setPicked(value === current ? null : value) }
   return <><header><p className="eyebrow">REFLEXÃO DIÁRIA</p><h1>Como foi seu dia?</h1><p>Uma pausa para reconhecer o que funcionou e escolher um passo para amanhã.</p></header>
-    <DailyForm key={date} date={date} existing={items.find(item => item.date === date)} />
-    <MonthlyCheckInChart items={items} date={date} />
+    <section className="log-date"><div className="log-date-copy"><span>Registrar check-in de</span><strong>{displayDate(date)}</strong></div><input aria-label="Data do check-in" type="date" max={current} value={date} onChange={event => pick(event.target.value)} /></section>
+    <DailyForm key={date} date={date} isToday={date === current} existing={items.find(item => item.date === date)} onDirtyChange={value => { dirty.current = value }} />
+    <MonthlyCheckInChart items={items} date={current} />
     <section className="panel checkin-history"><h2>Suas últimas reflexões</h2>{items.length === 0 ? <p>Seu primeiro registro aparecerá aqui.</p> : [...items].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7).map(item => <details key={item.id}><summary>{displayDate(item.date)} <span>{dimensions.map(d => d.label + ': ' + item[d.key]).join(' · ')}</span></summary><p><strong>O que foi bom:</strong> {item.good_today || 'Sem anotação.'}</p><p><strong>Próximo passo:</strong> {item.improve_tomorrow || 'Sem anotação.'}</p></details>)}</section>
   </>
 }
 
-function DailyForm({ date, existing }: { date: string; existing?: LocalCheckIn }) {
+function DailyForm({ date, isToday, existing, onDirtyChange }: { date: string; isToday: boolean; existing?: LocalCheckIn; onDirtyChange: (dirty: boolean) => void }) {
   const [scores, setScores] = useState<Record<Dimension, number>>({ discipline: existing?.discipline ?? 3, focus: existing?.focus ?? 3, energy: existing?.energy ?? 3 })
   const [good, setGood] = useState(existing?.good_today ?? '')
   const [improve, setImprove] = useState(existing?.improve_tomorrow ?? '')
@@ -38,12 +44,12 @@ function DailyForm({ date, existing }: { date: string; existing?: LocalCheckIn }
   function save() {
     try {
       saveLocalCheckIn({ date, ...scores, good_today: good.trim(), improve_tomorrow: improve.trim() })
-      setSaved(true); setError('')
+      setSaved(true); setError(''); onDirtyChange(false)
     } catch { setError('Não foi possível salvar. Verifique o espaço disponível e tente novamente.') }
   }
-  return <section className="panel form checkin-form"><div className="checkin-form-heading"><div><h2>{existing ? 'Seu registro de hoje' : 'Check-in de hoje'}</h2><p>1 = muito baixa · 3 = regular · 5 = muito boa. Você pode atualizar seu registro.</p></div><time className="checkin-date" dateTime={date}>{displayDate(date)}</time></div>
-    <div className="checkin-scores">{dimensions.map(d => <fieldset className="checkin-score" key={d.key}><legend>{d.label}</legend><p>{d.helper}</p><div className="score-options">{scoreLabels.map((label, index) => <label key={label}><input type="radio" name={d.key} value={index + 1} checked={scores[d.key] === index + 1} onChange={() => { setScores(current => ({ ...current, [d.key]: index + 1 })); setSaved(false) }} /><span>{index + 1}<small>{label}</small></span></label>)}</div></fieldset>)}</div>
-    <div className="checkin-notes"><label htmlFor="checkin-good">O que foi bom hoje? <small>Opcional</small><textarea id="checkin-good" rows={3} placeholder="Uma pequena vitória ou algo pelo qual você é grato." value={good} onChange={e => { setGood(e.target.value); setSaved(false) }} /></label><label htmlFor="checkin-improve">Um passo para amanhã <small>Opcional</small><textarea id="checkin-improve" rows={3} placeholder="Uma intenção simples e possível." value={improve} onChange={e => { setImprove(e.target.value); setSaved(false) }} /></label></div>
+  return <section className="panel form checkin-form"><div className="checkin-form-heading"><div><h2>{isToday ? (existing ? 'Seu registro de hoje' : 'Check-in de hoje') : (existing ? 'Seu registro deste dia' : 'Check-in deste dia')}</h2><p>1 = muito baixa · 3 = regular · 5 = muito boa. Você pode atualizar seu registro.</p></div><time className="checkin-date" dateTime={date}>{displayDate(date)}</time></div>
+    <div className="checkin-scores">{dimensions.map(d => <fieldset className="checkin-score" key={d.key}><legend>{d.label}</legend><p>{d.helper}</p><div className="score-options">{scoreLabels.map((label, index) => <label key={label}><input type="radio" name={d.key} value={index + 1} checked={scores[d.key] === index + 1} onChange={() => { setScores(current => ({ ...current, [d.key]: index + 1 })); setSaved(false); onDirtyChange(true) }} /><span>{index + 1}<small>{label}</small></span></label>)}</div></fieldset>)}</div>
+    <div className="checkin-notes"><label htmlFor="checkin-good">O que foi bom hoje? <small>Opcional</small><textarea id="checkin-good" rows={3} placeholder="Uma pequena vitória ou algo pelo qual você é grato." value={good} onChange={e => { setGood(e.target.value); setSaved(false); onDirtyChange(true) }} /></label><label htmlFor="checkin-improve">Um passo para amanhã <small>Opcional</small><textarea id="checkin-improve" rows={3} placeholder="Uma intenção simples e possível." value={improve} onChange={e => { setImprove(e.target.value); setSaved(false); onDirtyChange(true) }} /></label></div>
     <div className="checkin-submit-row"><button type="button" onClick={save} disabled={saved}>{saved ? 'Salvo' : existing ? 'Atualizar check-in' : 'Salvar check-in'}</button><p role="status">{saved ? 'Seu dia foi registrado.' : error || 'Um registro por dia, sem cobrança de perfeição.'}</p></div>
   </section>
 }

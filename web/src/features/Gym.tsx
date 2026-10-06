@@ -16,6 +16,7 @@ import {
   completeWorkout,
   createExercise,
   createWorkoutPlan,
+  clearAttendance,
   getAttendance,
   getBodyWeight,
   getCompletedWorkoutCount,
@@ -91,8 +92,9 @@ export function Gym() {
             <h2>Você treinou hoje?</h2>
             <div className="button-row">
               <button
-                className={attendance?.status === "WENT" ? "selected" : ""}
-                onClick={() => markAttendance(today(), "WENT")}
+                className={attendance?.status === "WENT" ? "selected" : "subtle"}
+                aria-pressed={attendance?.status === "WENT"}
+                onClick={() => attendance?.status === "WENT" ? clearAttendance(today()) : markAttendance(today(), "WENT")}
               >
                 Fui à academia
               </button>
@@ -102,7 +104,8 @@ export function Gym() {
                     ? "selected subtle"
                     : "subtle"
                 }
-                onClick={() => markAttendance(today(), "DID_NOT_GO")}
+                aria-pressed={attendance?.status === "DID_NOT_GO"}
+                onClick={() => attendance?.status === "DID_NOT_GO" ? clearAttendance(today()) : markAttendance(today(), "DID_NOT_GO")}
               >
                 Não fui
               </button>
@@ -532,6 +535,7 @@ function History({ sessions }: { sessions: WorkoutSession[] }) {
 function Progress({ sessions }: { sessions: WorkoutSession[] }) {
   useLocalRevision();
   const [weight, setWeight] = useState("");
+  const [weightDate, setWeightDate] = useState(today());
   const [group, setGroup] = useState<ExerciseMuscleGroup | "ALL">("ALL");
   const [exerciseId, setExerciseId] = useState("");
   const weights = getBodyWeight().slice().reverse();
@@ -568,10 +572,11 @@ function Progress({ sessions }: { sessions: WorkoutSession[] }) {
   const save = () => {
     const value = Number(weight.replace(",", "."));
     if (value > 0) {
-      saveBodyWeight(today(), value);
+      saveBodyWeight(weightDate, value);
       setWeight("");
     }
   };
+  const existing = weights.find((item) => item.date === weightDate);
   return (
     <section className="stack">
       <article className="panel">
@@ -581,14 +586,22 @@ function Progress({ sessions }: { sessions: WorkoutSession[] }) {
         </h2>
         <div className="inline-form gym-input-row">
           <input
+            aria-label="Data do peso"
+            type="date"
+            max={today()}
+            value={weightDate}
+            onChange={(event) => event.target.value && setWeightDate(event.target.value)}
+          />
+          <input
+            aria-label="Peso em kg"
             inputMode="decimal"
             type="number"
             step="0.1"
             value={weight}
-            placeholder="72,4"
+            placeholder={existing ? existing.weightKg.toLocaleString("pt-BR") : "72,4"}
             onChange={(event) => setWeight(event.target.value)}
           />
-          <button onClick={save}>Registrar peso</button>
+          <button onClick={save}>{existing ? "Atualizar peso" : "Registrar peso"}</button>
         </div>
         <LineChart
           title="Evolução do peso"
