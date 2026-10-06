@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
-import { readDatabaseValue, setDatabaseValue } from '../lib/app-db'
+import { deleteDatabaseValue, readDatabaseValue, setDatabaseValue } from '../lib/app-db'
 import { localDataKeys, getLocalBooks } from '../lib/local-store'
 import { gymDataKeys } from '../features/gym/services/gym.service'
-import { loadPdf, savePdf } from '../lib/pdf-store'
+import { deletePdf, loadPdf, savePdf } from '../lib/pdf-store'
 
 const backupVersion = 2
 const dataKeys = [...Object.values(localDataKeys), ...Object.values(gymDataKeys)]
@@ -69,14 +69,27 @@ export function BackupSettings() {
         if (!item || typeof item.id !== 'string' || typeof item.data !== 'string') throw new Error('invalid')
         return { id: item.id, bytes: decode(item.data) }
       })
-      if (!window.confirm('Restaurar este backup substituirá os dados locais atuais. Continuar?')) { setMessage('Restauração cancelada.'); return }
+      if (!window.confirm('Restaurar este backup substituirá os dados locais atuais (os que não estiverem no arquivo serão apagados). Continuar?')) { setMessage('Restauração cancelada.'); return }
+      // Backup v2 traz todas as áreas (ausente = estava vazia): a restauração substitui de verdade. O v1 não tinha academia nem PDFs, então esses dados atuais são preservados.
+      const replaceAll = data.version === backupVersion
+      const previousBookIds = getLocalBooks().map(book => book.id)
       for (const key of dataKeys) {
-        if (data.records[key] === undefined) continue
+        if (data.records[key] === undefined) {
+          if (!replaceAll) continue
+          localStorage.removeItem(key)
+          await deleteDatabaseValue(key)
+          continue
+        }
         localStorage.setItem(key, JSON.stringify(data.records[key]))
         await setDatabaseValue(key, data.records[key])
       }
       for (const pdf of pdfs) await savePdf(pdf.id, new Blob([pdf.bytes], { type: 'application/pdf' }))
+      if (replaceAll) {
+        const restored = new Set(pdfs.map(pdf => pdf.id))
+        for (const bookId of previousBookIds) if (!restored.has(bookId)) await deletePdf(bookId)
+      }
       if (typeof data.avatar === 'string') await setDatabaseValue('cavern.profile.avatar.v1', data.avatar)
+      else if (replaceAll) await deleteDatabaseValue('cavern.profile.avatar.v1')
       setMessage(data.version === 1 ? 'Backup antigo restaurado. Seus PDFs e dados da academia não existiam nesse arquivo. Recarregue o aplicativo.' : 'Backup restaurado. Recarregue o aplicativo para ver todos os dados.')
     } catch {
       setMessage('Arquivo de backup inválido ou restauração incompleta. Tente novamente com um backup válido.')

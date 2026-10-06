@@ -1,4 +1,4 @@
-import { getLocalFocusSessions, getLocalHabitLogs, getLocalHabits, getLocalReadingSessions, getLocalWorkouts, overallStreak, today } from '../../../lib/local-store'
+import { getLocalFocusSessions, getLocalHabitLogs, getLocalHabits, getLocalReadingSessions, getLocalWorkouts, localDay, overallStreak, today } from '../../../lib/local-store'
 import { analyzeLocalData, type LocalAnalysis } from '../../advisor/services/reflection.service'
 import type { AiDataCategory, AiMetric } from '../../advisor/services/ai-data.service'
 import type { Challenge } from '../domain/challenge'
@@ -18,9 +18,9 @@ function createLocalChallenge(startDate: string, categories: AiDataCategory[], m
   const byId = new Map(metrics.map(metric => [metric.id, metric.value]))
   const recent = shift(startDate, -27)
   const habits = getLocalHabits().filter(item => item.active)
-  const reading = getLocalReadingSessions().filter(item => item.started_at.slice(0, 10) >= recent && item.started_at.slice(0, 10) <= startDate)
+  const reading = getLocalReadingSessions().filter(item => (localDay(item.started_at) ?? '') >= recent && (localDay(item.started_at) ?? '') <= startDate)
   const workouts = getLocalWorkouts().filter(item => item.date >= recent && item.date <= startDate)
-  const focus = getLocalFocusSessions().filter(item => item.started_at.slice(0, 10) >= recent && item.started_at.slice(0, 10) <= startDate && item.status === 'completed')
+  const focus = getLocalFocusSessions().filter(item => (localDay(item.started_at) ?? '') >= recent && (localDay(item.started_at) ?? '') <= startDate && item.status === 'completed')
   const streak = overallStreak(getLocalHabitLogs())
   const durationDays = streak >= 14 ? 14 : 7
   const rules: Challenge['rules'] = []

@@ -53,19 +53,23 @@ const moreNav = [
 export default function App() {
   const [session, setSession] = useState<Session>(null);
   const [loading, setLoading] = useState(supabaseConfigured);
+  const [recovering, setRecovering] = useState(false);
   useEffect(() => {
     if (!supabase) return;
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_, next) =>
-      setSession(next),
-    );
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      // O link do e-mail de recuperação abre uma sessão temporária: pedir a nova senha antes de entrar no app.
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+      setSession(next);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
   if (!supabaseConfigured) return <LocalApp />;
   if (loading) return <main className="centered">Carregando...</main>;
+  if (recovering && session) return <ResetPassword onDone={() => setRecovering(false)} />;
   if (!session) return <Auth />;
   if (allowedEmail && session.user.email?.toLowerCase() !== allowedEmail)
     return <PrivateAccessDenied />;
@@ -78,8 +82,14 @@ function LocalApp() {
 
 function Shell({ profile }: { profile: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [storageFull, setStorageFull] = useState(false);
   const location = useLocation();
   useEffect(() => startHabitReminderChecks(), []);
+  useEffect(() => {
+    const warn = () => setStorageFull(true);
+    window.addEventListener("cavern:storage-error", warn);
+    return () => window.removeEventListener("cavern:storage-error", warn);
+  }, []);
   useEffect(() => {
     let reconciling = false;
     const reconcileAchievements = () => {
@@ -227,6 +237,12 @@ function Shell({ profile }: { profile: ReactNode }) {
         </Routes>
         </div>
       </main>
+      {storageFull && (
+        <div className="storage-alert" role="alert">
+          <span>Não foi possível salvar: o armazenamento do navegador está cheio ou bloqueado. Exporte um backup no Perfil e libere espaço.</span>
+          <button type="button" className="subtle" onClick={() => setStorageFull(false)}>Fechar</button>
+        </div>
+      )}
       <RewardFeedback />
     </div>
   );
@@ -326,6 +342,45 @@ function DeviceSettings() {
   );
 }
 
+function ResetPassword({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!supabase || busy) return;
+    if (password !== confirm) return setMessage("As senhas não são iguais.");
+    setBusy(true);
+    setMessage("");
+    const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (error) return setMessage(error.message);
+    onDone();
+  }
+  return (
+    <main className="auth">
+      <form className="auth-card" onSubmit={submit}>
+        <AuthBrand />
+        <div className="auth-heading">
+          <h1>Criar nova senha</h1>
+          <p>Escolha uma senha nova para voltar à sua caverna.</p>
+        </div>
+        <label htmlFor="reset-password">
+          Nova senha
+          <input id="reset-password" required minLength={8} autoComplete="new-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+        </label>
+        <label htmlFor="reset-confirm">
+          Repita a nova senha
+          <input id="reset-confirm" required minLength={8} autoComplete="new-password" type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} />
+        </label>
+        {message && <p className="message" role="alert">{message}</p>}
+        <button className="auth-submit" disabled={busy}>{busy ? "Aguarde..." : "Salvar nova senha"}</button>
+      </form>
+    </main>
+  );
+}
+
 function Auth() {
   const [register, setRegister] = useState(false);
   const [email, setEmail] = useState("");
@@ -357,7 +412,7 @@ function Auth() {
   async function reset() {
     if (!supabase || !email)
       return setMessage("Informe seu e-mail para recuperar a senha.");
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
     setMessage(error?.message ?? "Instruções enviadas para seu e-mail.");
   }
   return (

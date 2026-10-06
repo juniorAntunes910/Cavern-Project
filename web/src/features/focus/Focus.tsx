@@ -1,6 +1,6 @@
 import { Select } from '../../components/Select'
 import { useEffect, useMemo, useState } from 'react'
-import { addLocalFocusSession, finishLocalFocusSession, getLocalFocusSessions, getLocalGoals, getLocalHabits, MINIMUM_FOCUS_SECONDS, updateLocalFocusSession } from '../../lib/local-store'
+import { addLocalFocusSession, finishLocalFocusSession, focusStretchSeconds, getLocalFocusSessions, getLocalGoals, getLocalHabits, MAXIMUM_FOCUS_STRETCH_SECONDS, MINIMUM_FOCUS_SECONDS, updateLocalFocusSession } from '../../lib/local-store'
 import { getChallenges } from '../challenges/services/challenge.repository'
 
 export function Focus() {
@@ -20,6 +20,7 @@ export function Focus() {
   }, [active])
 
   const seconds = active ? elapsed(active) : 0
+  const stretchCapped = Boolean(active && focusStretchSeconds(active) >= MAXIMUM_FOCUS_STRETCH_SECONDS)
   const refresh = () => setSessions(getLocalFocusSessions())
   function start() {
     addLocalFocusSession({ started_at: new Date().toISOString(), project_name: project.trim() || null, challenge_id: challengeId || null, goal_id: goalId || null, habit_id: habitId || null })
@@ -43,6 +44,7 @@ export function Focus() {
     if (!active) return
     const result = finishLocalFocusSession(active.id)
     if (result && !result.valid) setMessage(`Sessões com menos de ${Math.floor(MINIMUM_FOCUS_SECONDS / 60)} minutos não entram no histórico.`)
+    else if (stretchCapped) setMessage(`O cronômetro parou de contar após ${MAXIMUM_FOCUS_STRETCH_SECONDS / 3600} horas seguidas. Pause a sessão se for se ausentar.`)
     refresh()
   }
   function cancel() {
@@ -87,7 +89,7 @@ export function Focus() {
 }
 
 function elapsed(session: ReturnType<typeof getLocalFocusSessions>[number]) {
-  return session.accumulated_seconds + (session.status === 'active' ? Math.max(0, Math.floor((Date.now() - new Date(session.resumed_at ?? session.started_at).getTime()) / 1000)) : 0)
+  return session.accumulated_seconds + focusStretchSeconds(session)
 }
 function formatSeconds(total: number) {
   return [Math.floor(total / 3600), Math.floor(total % 3600 / 60), total % 60].map(value => String(value).padStart(2, '0')).join(':')

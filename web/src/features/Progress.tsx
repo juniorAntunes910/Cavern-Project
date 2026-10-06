@@ -242,9 +242,11 @@ export function StreakScene({
 }) {
   const scale = [0, 0.6, 0.8, 1, 1.15][level];
   const sceneRef = useRef<SVGSVGElement>(null);
+  const isBat = loadout.mascot_id === "bat";
   useEffect(() => {
-    // Os olhos do mascote acompanham o ponteiro (até 4 unidades do SVG), sem re-renderizar.
+    // Os olhos do mascote acompanham o ponteiro dentro do rosto (limites em unidades do SVG), sem re-renderizar.
     if (prefersReducedMotion()) return;
+    const [maxX, maxY] = isBat ? [5, 4] : [10, 6];
     let frame = 0;
     const look = (event: PointerEvent) => {
       cancelAnimationFrame(frame);
@@ -255,14 +257,14 @@ export function StreakScene({
         const dx = event.clientX - (box.left + (90 * box.width) / 300);
         const dy = event.clientY - (box.top + (106 * box.height) / 200);
         const distance = Math.hypot(dx, dy) || 1;
-        const reach = Math.min(1, distance / 260) * 4;
-        svg.style.setProperty("--ex", String((dx / distance) * reach));
-        svg.style.setProperty("--ey", String((dy / distance) * reach));
+        const reach = Math.min(1, distance / 90);
+        svg.style.setProperty("--ex", String((dx / distance) * reach * maxX));
+        svg.style.setProperty("--ey", String((dy / distance) * reach * maxY));
       });
     };
     window.addEventListener("pointermove", look, { passive: true });
     return () => { window.removeEventListener("pointermove", look); cancelAnimationFrame(frame); };
-  }, []);
+  }, [isBat]);
   const fire = (
     {
       "fire-blue": ["#3b9dff", "#b5e7ff"],

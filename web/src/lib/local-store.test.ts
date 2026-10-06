@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { gymDataKeys } from '../features/gym/services/gym.service'
 import { focusSession, goal, habit, habitLog, localAt, readingSession, resetStorage } from '../test/helpers'
 import { persistDatabaseValue } from './app-db'
-import { goalProgress, habitStreak, localDataKeys, memoizeByRevision, overallStreak, readCollection, writeCollection } from './local-store'
+import { MAXIMUM_FOCUS_STRETCH_SECONDS, finishLocalFocusSession, focusStretchSeconds, getLocalFocusSessions, goalProgress, habitStreak, localDataKeys, memoizeByRevision, overallStreak, readCollection, writeCollection } from './local-store'
 
 const uniqueKey = () => `cavern.test.${crypto.randomUUID()}`
 type Item = { id: string }
@@ -216,5 +216,36 @@ describe('goalProgress', () => {
     // The workout habit repeats 10-02 (already counted) and adds 10-07.
     writeCollection(localDataKeys.habitLogs, [habitLog('h3', '2026-10-02'), habitLog('h3', '2026-10-07')])
     expect(goalProgress(goal({ id: 'g1', metric: 'workouts', unit: 'treinos' }))).toBe(4)
+  })
+})
+
+describe('focus session left running', () => {
+  it('stops counting a single running stretch after the maximum', () => {
+    const now = Date.parse('2026-10-06T12:00:00Z')
+    const session = { status: 'active' as const, started_at: '2026-10-05T20:00:00Z', resumed_at: null }
+    expect(focusStretchSeconds(session, now)).toBe(MAXIMUM_FOCUS_STRETCH_SECONDS)
+    expect(focusStretchSeconds({ ...session, started_at: '2026-10-06T11:00:00Z' }, now)).toBe(3600)
+    expect(focusStretchSeconds({ ...session, status: 'paused' as never }, now)).toBe(0)
+  })
+  it('records at most the maximum when an overnight session is finished', () => {
+    writeCollection(localDataKeys.focusSessions, [{ id: 'f1', started_at: new Date(Date.now() - 10 * 3600_000).toISOString(), ended_at: null, duration_seconds: 0, accumulated_seconds: 0, status: 'active' }])
+    finishLocalFocusSession('f1')
+    expect(getLocalFocusSessions()[0].duration_seconds).toBe(MAXIMUM_FOCUS_STRETCH_SECONDS)
+  })
+})
+
+describe('skipped days', () => {
+  it('neither count nor break a habit streak', () => {
+    const logs = [habitLog('h1', '2026-10-03'), habitLog('h1', '2026-10-04'), habitLog('h1', '2026-10-05', 'skipped'), habitLog('h1', '2026-10-06')]
+    expect(habitStreak('h1', logs, '2026-10-06')).toBe(3)
+    expect(overallStreak(logs, '2026-10-06')).toBe(3)
+  })
+  it('still lets a failure or an empty day end the streak', () => {
+    const logs = [habitLog('h1', '2026-10-03'), habitLog('h1', '2026-10-04', 'failed'), habitLog('h1', '2026-10-05'), habitLog('h1', '2026-10-06')]
+    expect(habitStreak('h1', logs, '2026-10-06')).toBe(2)
+  })
+  it('keeps the streak alive when today is skipped', () => {
+    const logs = [habitLog('h1', '2026-10-04'), habitLog('h1', '2026-10-05'), habitLog('h1', '2026-10-06', 'skipped')]
+    expect(habitStreak('h1', logs, '2026-10-06')).toBe(2)
   })
 })
