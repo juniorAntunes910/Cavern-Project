@@ -42,3 +42,24 @@
   .checkin-score-heading span{font-size:.76rem}.checkin-date{padding:6px 9px}
   .book-card{gap:12px;padding:14px}.book-cover{height:82px;width:58px}
 }
+
+/* Tablet: a coluna principal pode encolher (minmax(0,1fr)) e as duas colunas empilham, evitando rolagem horizontal. */
+.app-shell{grid-template-columns:232px minmax(0,1fr)}
+@media(max-width:1000px){.two-columns{grid-template-columns:minmax(0,1fr)}}
+.notification-actions{flex-wrap:wrap}
+
+/* Alvos de toque de pelo menos 44px no mobile. */
+@media(max-width:700px){
+  .form-details summary{align-items:center;display:flex;min-height:44px}
+  .profile-section .day-picker button{height:44px;min-height:44px;width:44px}
+  .day-picker{flex-wrap:wrap}
+  .avatar-wrap .avatar-edit{height:44px;min-height:44px;width:44px}
+}
+
+/* Contraste: texto branco sobre roxo precisa de >= 4.5:1 (o roxo de destaque do tema escuro dava 3.2:1). */
+:root{--purple-fill:#7a5bd1}
+:root[data-theme='light']{--purple-fill:var(--purple)}
+.button,button:not(.theme-toggle):not(.link):not(.subtle):not(.danger){background:var(--purple-fill)}
+.gym-tabs button.active,.selected{background:var(--purple-fill)!important;border-color:var(--purple-fill)!important}
+.today-check.done,.home-intro li:before,.reward-toast>span{background:var(--purple-fill)}
+:root a.button,:root .button.subtle{background:var(--purple-fill)}

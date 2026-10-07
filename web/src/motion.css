@@ -216,8 +216,8 @@ nav a.active { background: transparent; box-shadow: none; }
 @keyframes toast-out { to { opacity: 0; transform: translateY(14px) scale(.96); } }
 .reward-toast.leaving { animation: toast-out .32s var(--ease-out) forwards; }
 
-/* ---------- Droid: os olhos acompanham o cursor (variáveis definidas em Progress.tsx) ---------- */
-.scene-eye { transition: translate .14s ease-out; translate: calc(var(--ex, 0) * 1px) calc(var(--ey, 0) * 1px); }
+/* ---------- Droid: os olhos acompanham o cursor (transform definido em Progress.tsx) ---------- */
+.scene-gaze { transition: transform .14s ease-out; }
 
 /* ---------- Números que contam ---------- */
 .fire-count, .achievement-ring strong, .achievement-earned dd, .shop-balance { font-variant-numeric: tabular-nums; }

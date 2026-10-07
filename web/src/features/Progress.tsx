@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { CountUp } from "../components/CountUp";
-import { prefersReducedMotion } from "../lib/motion";
 import { NavLink } from "react-router-dom";
 import "./progress.css";
 import {
@@ -245,7 +244,7 @@ export function StreakScene({
   const isBat = loadout.mascot_id === "bat";
   useEffect(() => {
     // Os olhos do mascote acompanham o ponteiro dentro do rosto (limites em unidades do SVG), sem re-renderizar.
-    if (prefersReducedMotion()) return;
+    // Vale também com movimento reduzido: sem transição (zerada no CSS), o olho só muda de posição, sem animar.
     const [maxX, maxY] = isBat ? [5, 4] : [10, 6];
     let frame = 0;
     const look = (event: PointerEvent) => {
@@ -258,8 +257,10 @@ export function StreakScene({
         const dy = event.clientY - (box.top + (106 * box.height) / 200);
         const distance = Math.hypot(dx, dy) || 1;
         const reach = Math.min(1, distance / 90);
-        svg.style.setProperty("--ex", String((dx / distance) * reach * maxX));
-        svg.style.setProperty("--ey", String((dy / distance) * reach * maxY));
+        const x = (dx / distance) * reach * maxX;
+        const y = (dy / distance) * reach * maxY;
+        // transform direto (e não a propriedade CSS `translate`) para funcionar também em WebViews antigos.
+        svg.querySelectorAll<SVGGElement>(".scene-gaze").forEach((gaze) => { gaze.style.transform = `translate(${x}px, ${y}px)`; });
       });
     };
     window.addEventListener("pointermove", look, { passive: true });
@@ -302,8 +303,10 @@ export function StreakScene({
               <path d="M45 27Q68 27 77 35Q57 33 43 31Z" fill="#23649e" />
             </>
           )}
-          <circle className="scene-eye" cx="35" cy="42" r="3" fill="#ffcf73" />
-          <circle className="scene-eye" cx="51" cy="42" r="3" fill="#ffcf73" />
+          <g className="scene-gaze">
+            <circle className="scene-eye" cx="35" cy="42" r="3" fill="#ffcf73" />
+            <circle className="scene-eye" cx="51" cy="42" r="3" fill="#ffcf73" />
+          </g>
           {loadout.accessory_item_id === "glasses" && (
             <>
               <circle
@@ -339,8 +342,10 @@ export function StreakScene({
             d="M52 133V107Q52 67 89 62Q127 67 127 107V133Q92 153 52 133Z"
             fill="#20202c"
           />
-          <ellipse className="scene-eye" cx="75" cy="106" rx="6" ry="8" fill="#ffcf73" />
-          <ellipse className="scene-eye" cx="106" cy="106" rx="6" ry="8" fill="#ffcf73" />
+          <g className="scene-gaze">
+            <ellipse className="scene-eye" cx="75" cy="106" rx="6" ry="8" fill="#ffcf73" />
+            <ellipse className="scene-eye" cx="106" cy="106" rx="6" ry="8" fill="#ffcf73" />
+          </g>
           <path
             d={level === 0 ? "M84 127H97" : "M83 122Q90 132 98 122"}
             fill="none"

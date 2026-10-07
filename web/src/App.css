@@ -206,3 +206,4 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,s
 @keyframes reward-enter{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:700px){.reward-toast{bottom:calc(env(safe-area-inset-bottom) + 14px);left:16px;right:16px;max-width:none}}
 @media(prefers-reduced-motion:reduce){.route-view,.campfire i,.campfire b,.campfire em,.reward-toast{animation:none}.progress-track>i{transition:none}}
+.route-loading{color:var(--muted);padding:24px 0}

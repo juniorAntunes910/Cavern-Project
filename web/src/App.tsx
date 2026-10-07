@@ -1,25 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CountUp } from "./components/CountUp";
 import type { FormEvent, ReactNode } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { allowedEmail, supabase, supabaseConfigured } from "./lib/supabase";
-import { Goals } from "./features/Goals";
-import { Habits } from "./features/Habits";
 import { Progress } from "./features/Progress";
-import { CheckIn } from "./features/CheckIn";
-import { Gym } from "./features/Gym";
-import { Books } from "./features/Books";
-import { Reader } from "./features/Reader";
-import { Finance } from "./features/Finance";
-import { ChallengesPage } from "./features/challenges/pages/ChallengesPage";
-import { Focus } from "./features/focus/Focus";
-import { AchievementsPage } from "./features/achievements/Achievements";
-import { Shop } from "./features/shop/Shop";
 import { grantReward } from "./features/gamification/rewards/reward.service";
 import { InstallControl } from "./components/AppInstall";
 import { NotificationSettings } from "./components/NotificationSettings";
 import { ProfileSettings } from "./features/ProfileSettings";
-import { AiAdvisorPage } from "./features/advisor/pages/AiAdvisorPage";
 import { addLocalTimelineEvent, getLocalHabitLogs, getLocalRewardTransactions, grantLocalReward, overallStreak, unlockLocalAchievement } from "./lib/local-store";
 import { startHabitReminderChecks } from "./lib/notifications";
 import { useLocalRevision } from "./lib/use-local-revision";
@@ -28,6 +16,20 @@ import "./App.css";
 import "./theme-overrides.css";
 import "./reader.css";
 import "./mobile-compact.css";
+
+// Telas carregadas sob demanda: só o Início vai no bundle inicial. O service worker pré-carrega todos os chunks para o modo offline.
+const Goals = lazy(() => import("./features/Goals").then((m) => ({ default: m.Goals })));
+const Habits = lazy(() => import("./features/Habits").then((m) => ({ default: m.Habits })));
+const CheckIn = lazy(() => import("./features/CheckIn").then((m) => ({ default: m.CheckIn })));
+const Gym = lazy(() => import("./features/Gym").then((m) => ({ default: m.Gym })));
+const Books = lazy(() => import("./features/Books").then((m) => ({ default: m.Books })));
+const Reader = lazy(() => import("./features/Reader").then((m) => ({ default: m.Reader })));
+const Finance = lazy(() => import("./features/Finance").then((m) => ({ default: m.Finance })));
+const ChallengesPage = lazy(() => import("./features/challenges/pages/ChallengesPage").then((m) => ({ default: m.ChallengesPage })));
+const Focus = lazy(() => import("./features/focus/Focus").then((m) => ({ default: m.Focus })));
+const AchievementsPage = lazy(() => import("./features/achievements/Achievements").then((m) => ({ default: m.AchievementsPage })));
+const Shop = lazy(() => import("./features/shop/Shop").then((m) => ({ default: m.Shop })));
+const AiAdvisorPage = lazy(() => import("./features/advisor/pages/AiAdvisorPage").then((m) => ({ default: m.AiAdvisorPage })));
 
 type Session = Awaited<
   ReturnType<NonNullable<typeof supabase>["auth"]["getSession"]>
@@ -217,6 +219,7 @@ function Shell({ profile }: { profile: ReactNode }) {
       </aside>
       <main className="content">
         <div className="route-view" key={location.pathname}>
+        <Suspense fallback={<p className="route-loading" role="status">Carregando…</p>}>
         <Routes>
           <Route path="/advisor" element={<AiAdvisorPage />} />
           <Route path="/" element={<Progress />} />
@@ -235,6 +238,7 @@ function Shell({ profile }: { profile: ReactNode }) {
           <Route path="/profile" element={profile} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
         </div>
       </main>
       {storageFull && (

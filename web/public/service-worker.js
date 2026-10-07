@@ -1,4 +1,4 @@
-const cacheName = 'cavern-shell-v6'
+const cacheName = 'cavern-shell-v7'
 const databaseName = 'cavern-app'
 const storeName = 'records'
 const habitsKey = 'cavern.local.habits.v1'
@@ -27,12 +27,13 @@ self.addEventListener('fetch', event => {
       const copy = response.clone()
       void caches.open(cacheName).then(cache => cache.put('/', copy))
       return response
-    }).catch(() => caches.match('/')))
+    }).catch(() => caches.match('/', { ignoreVary: true })))
     return
   }
 
   if (['style', 'script', 'worker', 'image', 'font'].includes(request.destination) && !url.pathname.startsWith('/src/')) {
-    event.respondWith(caches.match(request).then(cached => cached ?? fetch(request).then(response => {
+    // ignoreVary: o servidor pode responder com `Vary: Origin` e um import() envia Origin; sem isso o chunk pré-carregado nunca casa.
+    event.respondWith(caches.match(request, { ignoreVary: true }).then(cached => cached ?? fetch(request).then(response => {
       const copy = response.clone()
       void caches.open(cacheName).then(cache => cache.put(request, copy))
       return response
