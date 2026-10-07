@@ -9,6 +9,7 @@
   .challenge-section{margin:24px 0}.section-heading{gap:10px;margin-bottom:12px}
   .challenge-template-grid{gap:9px;grid-template-columns:repeat(2,minmax(0,1fr))}
   .challenge-template{align-content:start;gap:7px;padding:12px}
+  .challenge-template:last-child:nth-child(odd){grid-column:1/-1}
   .challenge-template h3{font-size:1rem;line-height:1.25;overflow-wrap:anywhere}
   .challenge-template p:not(.eyebrow){display:-webkit-box;font-size:.78rem;line-height:1.35;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
   .challenge-template button{font-size:.8rem;justify-self:stretch;margin-top:auto;padding:8px}
