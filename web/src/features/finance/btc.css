@@ -1,0 +1,2 @@
+.field-hint { color: var(--muted); display: block; font-size: .82rem; font-weight: 500; line-height: 1.4; }
+.field-hint strong { color: var(--text); }
