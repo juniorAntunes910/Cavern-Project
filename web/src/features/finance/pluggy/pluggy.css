@@ -26,3 +26,12 @@
   .pluggy-connection-head > button { width: 100%; }
   .transaction-category { max-width: none; }
 }
+
+/* Painel opcional, recolhido enquanto não há banco conectado */
+.pluggy-optional { padding: 0; }
+.pluggy-optional > summary { align-items: center; cursor: pointer; display: flex; font-weight: 700; gap: 10px; justify-content: space-between; list-style: none; min-height: 56px; padding: 14px 18px; }
+.pluggy-optional > summary::-webkit-details-marker { display: none; }
+.pluggy-optional > summary small { color: var(--muted); font-size: .76rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.pluggy-optional > summary::after { border-bottom: 2px solid currentColor; border-right: 2px solid currentColor; content: ''; flex: none; height: 7px; margin: 0 4px 4px 8px; transform: rotate(45deg); transition: transform .2s ease; width: 7px; }
+.pluggy-optional[open] > summary::after { margin-bottom: -4px; transform: rotate(-135deg); }
+.pluggy-optional > .form { padding: 4px 18px 18px; }
