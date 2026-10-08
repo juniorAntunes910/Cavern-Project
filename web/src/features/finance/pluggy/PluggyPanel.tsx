@@ -61,14 +61,17 @@ export function PluggyPanel({ connections, onMessage }: Props) {
     setRemoving(null)
   }
 
-  return <section className="panel form pluggy-panel" aria-labelledby="pluggy-title">
+  // A conexão bancária é opcional: sem login do Supabase (modo local) e sem conexões, o Financeiro segue sem este painel.
+  if (!supabaseConfigured && connections.length === 0) return null
+
+  const body = <>
     <div>
       <p className="eyebrow">OPEN FINANCE</p>
       <h2 id="pluggy-title">Contas conectadas</h2>
       <p className="muted">Importe lançamentos e saldo do seu banco pela Pluggy. Somente leitura: nada é pago ou movimentado.</p>
     </div>
 
-    {!supabaseConfigured && <p className="action-feedback">Esta função usa o login do Supabase. Neste modo local ela fica indisponível.</p>}
+    {!supabaseConfigured && <p className="action-feedback">Sem o login do Supabase não é possível atualizar. Os lançamentos já importados continuam aqui.</p>}
     {error && <p className="action-feedback pluggy-error" role="alert">{error}</p>}
 
     {connections.map(connection => <article className="pluggy-connection" key={connection.id}>
@@ -105,5 +108,12 @@ export function PluggyPanel({ connections, onMessage }: Props) {
     </details>
 
     <ConfirmDialog open={Boolean(removing)} title="Remover esta conexão?" description={`“${removing?.bank ?? ''}” deixa de sincronizar e os lançamentos importados dele serão apagados daqui. Seus lançamentos manuais não mudam. No banco, nada é alterado.`} confirmLabel="Remover" onCancel={() => setRemoving(null)} onConfirm={confirmRemove} />
-  </section>
+  </>
+
+  // Sem conexões, fica recolhido e discreto; com conexões, aparece completo.
+  if (connections.length === 0) return <details className="panel pluggy-panel pluggy-optional">
+    <summary>Conectar um banco <small>Open Finance · opcional</small></summary>
+    <div className="form">{body}</div>
+  </details>
+  return <section className="panel form pluggy-panel" aria-labelledby="pluggy-title">{body}</section>
 }
