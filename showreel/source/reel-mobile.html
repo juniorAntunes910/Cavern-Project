@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cavern Mobile Reel</title>
+<style>
+  :root {
+    --bg: #07080a; --surface: #171a18; --surface2: #111412; --line: #292e2a; --text: #f1f2ee; --muted: #aeb4ac;
+    --purple: #9c7de8; --purpleSoft: #302548; --green: #9dbe91; --ember: #ff8a3d; --gold: #f2c45a;
+    --display: "Segoe UI", system-ui, sans-serif; --hud: "Bahnschrift", "Segoe UI", sans-serif; --mono: Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--display); }
+  #stage { position: absolute; inset: 0; overflow: hidden; perspective: 1800px; background: radial-gradient(120% 90% at 50% 110%, #1a1210 0%, #0b0b0e 45%, #050507 100%); }
+  canvas { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+  .scene { position: absolute; inset: 0; transform-style: preserve-3d; visibility: hidden; }
+  .abs { position: absolute; }
+  .center { left: 50%; top: 50%; }
+  .hud { font-family: var(--hud); font-weight: 600; letter-spacing: .32em; text-transform: uppercase; font-size: 18px; color: var(--muted); }
+  .kicker { font-family: var(--hud); font-weight: 700; letter-spacing: .5em; text-transform: uppercase; color: var(--purple); font-size: 22px; }
+  .mega { font-weight: 900; letter-spacing: -.04em; line-height: .85; white-space: nowrap; }
+  .outline { color: transparent; -webkit-text-stroke: 2px rgba(241, 242, 238, .22); }
+  .mask { overflow: hidden; display: inline-block; vertical-align: top; }
+  .mask > span { display: inline-block; will-change: transform; }
+
+  /* janelas e telefones com telas reais */
+  .window { position: absolute; border-radius: 22px; overflow: hidden; background: #0e100f; box-shadow: 0 60px 140px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07); transform-style: preserve-3d; }
+  .window .bar { height: 44px; background: #15171a; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .window .bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3d42; display: block; }
+  .window .bar i:nth-child(1) { background: #ff5f57; } .window .bar i:nth-child(2) { background: #febc2e; } .window .bar i:nth-child(3) { background: #28c840; }
+  .window .bar b { margin-left: 18px; font: 600 15px var(--hud); color: #7b8088; letter-spacing: .04em; background: #0d0f11; padding: 6px 16px; border-radius: 8px; }
+  .window .view { position: relative; overflow: hidden; }
+  .window .view img { display: block; width: 100%; }
+  .phone { position: absolute; width: 380px; height: 822px; border-radius: 58px; background: #050506; padding: 14px; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px #2a2c31, inset 0 0 0 2px #111; }
+  .phone .glass { position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: #0d0f0e; }
+  .phone .glass img { width: 100%; display: block; }
+  .phone .notch { position: absolute; top: 12px; left: 50%; width: 110px; height: 32px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 2; }
+  .sheen { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 48%, transparent 60%); mix-blend-mode: screen; pointer-events: none; }
+
+  /* chat */
+  .bubble { position: absolute; border-radius: 26px; padding: 26px 32px; font-size: 30px; line-height: 1.36; max-width: 980px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .bubble small { display: block; font: 700 17px var(--hud); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; opacity: .75; }
+  .bubble.ai { background: #121513; border: 1px solid #2a302c; }
+  .bubble.me { background: var(--purpleSoft); border: 1px solid #4b3b72; }
+  .typing i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); margin-right: 10px; }
+
+  /* medalhas, chips */
+  .chip { position: absolute; font: 700 22px var(--hud); letter-spacing: .2em; padding: 12px 24px; border-radius: 999px; border: 1px solid rgba(156,125,232,.5); background: rgba(48,37,72,.55); color: #d9cdfb; text-transform: uppercase; white-space: nowrap; }
+  .tile { position: absolute; width: 640px; height: 400px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); backface-visibility: hidden; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+  .flashword { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 900; font-size: 210px; letter-spacing: -.04em; transform: translateY(-50%); mix-blend-mode: normal; text-shadow: 0 0 60px rgba(156,125,232,.55); }
+  #flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, #ffd9a8, #ff9a4d 55%, #7a3b1c); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+  #letterbox { position: absolute; inset: 0; pointer-events: none; }
+  #letterbox::before, #letterbox::after { content: ''; position: absolute; left: 0; right: 0; height: var(--lb, 0px); background: #000; }
+  #letterbox::before { top: 0; } #letterbox::after { bottom: 0; }
+  #timecode { position: absolute; right: 54px; bottom: 40px; font: 600 16px var(--mono); color: rgba(241,242,238,.45); letter-spacing: .12em; }
+  #brandmark { position: absolute; left: 54px; bottom: 40px; font: 700 16px var(--hud); letter-spacing: .5em; color: rgba(241,242,238,.45); }
+  #progressbar { position: absolute; left: 54px; right: 54px; bottom: 26px; height: 2px; background: rgba(255,255,255,.08); }
+  #progressbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ember), var(--purple)); }
+
+/* ===== Cavern mobile reel: telefones, chat e elementos novos ===== */
+.mphone { position: absolute; width: 380px; height: 790px; border-radius: 58px; background: #050506; padding: 14px; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px #2a2c31, inset 0 0 0 2px #111; transform-origin: 50% 50%; will-change: transform; }
+.mphone .notch { position: absolute; top: 9px; left: 50%; width: 96px; height: 20px; margin-left: -48px; border-radius: 20px; background: #000; z-index: 6; }
+.mphone .glass { position: relative; width: 352px; height: 762px; border-radius: 46px; overflow: hidden; background: #0d0f0e; }
+.mphone .sheen { transform: translateX(-130%); position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.2) 48%, transparent 60%); mix-blend-mode: screen; pointer-events: none; z-index: 7; overflow: hidden; }
+.screen { position: absolute; inset: 0; overflow: hidden; }
+.scroller { position: absolute; left: 0; top: 0; width: 352px; will-change: transform; }
+.scroller > img { display: block; width: 352px; height: auto; }
+.ov { position: absolute; left: 0; top: 0; width: 1170px; height: 100%; transform-origin: 0 0; transform: scale(.300855); pointer-events: none; }
+.ov > * { position: absolute; }
+.rip { width: 230px; height: 230px; margin: -115px 0 0 -115px; border-radius: 50%; border: 9px solid #c9b6ff; box-shadow: 0 0 60px rgba(156,125,232,.8); opacity: 0; }
+.done-btn { display: flex; align-items: center; justify-content: center; border-radius: 22px; border: 4px solid #9c7de8; background: #121514; color: #cdbdf8; font: 700 46px "Segoe UI", sans-serif; opacity: 0; }
+.done-chk { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #9c7de8; color: #fff; font: 800 44px "Segoe UI", sans-serif; opacity: 0; }
+.equipped { display: flex; align-items: center; justify-content: center; border-radius: 22px; background: #4a3a80; color: #b9b1cf; font: 700 48px "Segoe UI", sans-serif; opacity: 0; }
+.menu-hl { border-radius: 22px; background: rgba(156,125,232,.32); border: 4px solid #9c7de8; opacity: 0; }
+
+/* chat feito em HTML dentro do telefone (352×762) */
+#chat-ui { position: absolute; inset: 0; display: flex; flex-direction: column; font-family: "Segoe UI", system-ui, sans-serif; color: #f1f2ee; background: #0d0f0e; }
+#chat-top { height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 0; border-bottom: 1px solid #1d211e; }
+#chat-top .burger { width: 32px; height: 32px; border-radius: 9px; background: #7c5ad4; display: grid; place-content: center; gap: 3px; }
+#chat-top .burger i { display: block; width: 14px; height: 2px; border-radius: 2px; background: #fff; }
+#chat-top b { font: 800 11px Bahnschrift, sans-serif; letter-spacing: .32em; }
+#chat-top span { font: 700 14px "Segoe UI", sans-serif; }
+#chat-card { flex: 1; margin: 12px 10px 0; border: 1px solid #292e2a; border-radius: 16px; background: #171a18; display: flex; flex-direction: column; padding: 12px; min-height: 0; }
+#chat-status { font-size: 10.5px; color: #aeb4ac; margin-bottom: 8px; display: flex; gap: 7px; align-items: center; }
+#chat-status i { width: 8px; height: 8px; border-radius: 50%; background: #9c7de8; display: block; }
+#chat-list { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; border: 1px solid #292e2a; border-radius: 13px; padding: 8px; }
+.cb { border-radius: 12px; padding: 9px 11px; font-size: 12.6px; line-height: 1.38; }
+.cb small { display: block; font: 700 9.5px Bahnschrift, sans-serif; letter-spacing: .1em; text-transform: uppercase; opacity: .75; margin-bottom: 4px; }
+.cb.ai { background: #111412; border: 1px solid #222823; }
+.cb.me { background: #35295a; border: 1px solid #4b3b72; }
+#chat-typing i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #aeb4ac; margin-right: 5px; }
+#chat-input { flex: none; margin-top: 10px; border: 1px solid #3d3567; border-radius: 12px; background: #111412; color: #7d847b; font-size: 12px; padding: 10px 11px; min-height: 42px; }
+#chat-send { flex: none; margin-top: 8px; border-radius: 10px; background: #4a3a80; color: #aeb4ac; font-weight: 700; font-size: 13px; text-align: center; padding: 10px; }
+#chat-bottom { flex: none; height: 18px; }
+
+.stat { position: absolute; font: 700 22px Bahnschrift, sans-serif; letter-spacing: .16em; text-transform: uppercase; padding: 14px 26px; border-radius: 16px; border: 1px solid rgba(156,125,232,.5); background: rgba(24,18,38,.82); color: #e0d6fc; white-space: nowrap; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.stat b { color: #ffd27a; font-size: 30px; margin-right: 10px; letter-spacing: 0; }
+.navchip { position: absolute; font: 700 26px Bahnschrift, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 12px 26px; border-radius: 999px; border: 1px solid rgba(156,125,232,.5); background: rgba(48,37,72,.55); color: #d9cdfb; white-space: nowrap; }
+.bigcount { position: absolute; font: 900 170px "Segoe UI", sans-serif; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.bigcount small { display: block; font: 700 22px Bahnschrift, sans-serif; letter-spacing: .4em; color: var(--muted); margin-top: 6px; text-transform: uppercase; }
+
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <radialGradient id="fg" cx="50%" cy="80%" r="60%"><stop offset="0" stop-color="#ffd27a"/><stop offset=".55" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/></radialGradient>
+      <g id="flame-shape">
+        <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="url(#fg)"/>
+        <path class="core" d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#fff1b0"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- 1 · abertura -->
+  <section class="scene" id="s-open">
+    <svg id="fire-big" class="abs" viewBox="-60 -110 120 120" width="440" height="440" style="left:740px;top:90px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="o-line1" class="abs mega" style="left:0;right:0;top:540px;text-align:center;font-size:190px"></div>
+    <div id="o-line2" class="abs mega" style="left:0;right:0;top:720px;text-align:center;font-size:190px;color:#9c7de8"></div>
+    <div id="o-tag" class="abs hud" style="left:0;right:0;top:960px;text-align:center;font-size:24px">Cavern · now in your hand</div>
+  </section>
+
+  <!-- 2 · um toque -->
+  <section class="scene" id="s-habit">
+    <div id="h-word" class="abs mega outline" style="left:-80px;top:300px;font-size:560px">DONE</div>
+    <div id="h-k" class="abs kicker" style="left:140px;top:190px">Daily ritual</div>
+    <div id="h-t1" class="abs mega" style="left:140px;top:250px;font-size:230px">ONE</div>
+    <div id="h-t2" class="abs mega" style="left:140px;top:450px;font-size:230px;color:#9c7de8">TAP.</div>
+    <div id="h-count" class="bigcount" style="left:140px;top:760px">0/4<small>habits done today</small></div>
+    <div id="h-streak" class="stat" style="left:700px;top:880px"><b id="h-streak-n">60</b>day streak</div>
+    <div class="mphone" id="p-home"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller"><img src="shots/mm-home.png"><div class="ov" id="home-ov"></div></div></div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 3 · menu -->
+  <section class="scene" id="s-menu">
+    <div id="m-word" class="abs mega outline" style="left:0;top:330px;font-size:520px;text-align:right;right:-60px">GO</div>
+    <div id="m-k" class="abs kicker" style="left:1090px;top:230px">Navigate</div>
+    <div id="m-t1" class="abs mega" style="left:1090px;top:290px;font-size:200px">EVERY</div>
+    <div id="m-t2" class="abs mega" style="left:1090px;top:470px;font-size:200px;color:#9c7de8">AREA.</div>
+    <div id="m-chips"></div>
+    <div class="mphone" id="p-menu"><div class="notch"></div><div class="glass"><div class="screen">
+      <div class="scroller"><img src="shots/mm-home.png"></div>
+      <div id="menu-dim" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+      <div id="menu-slide" class="scroller" style="width:352px"><img src="shots/mm-menu.png"><div class="ov" id="menu-ov"></div></div>
+    </div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 4 · loja -->
+  <section class="scene" id="s-shop">
+    <div id="s-word" class="abs mega outline" style="left:-60px;top:360px;font-size:500px">OWN</div>
+    <div id="s-k" class="abs kicker" style="left:140px;top:190px">Customize</div>
+    <div id="s-t1" class="abs mega" style="left:140px;top:250px;font-size:200px">MAKE IT</div>
+    <div id="s-t2" class="abs mega" style="left:140px;top:430px;font-size:200px;color:#9c7de8">YOURS.</div>
+    <div id="s-count" class="bigcount" style="left:140px;top:750px"><span id="s-n">2650</span><small>embers · fogo azul −500</small></div>
+    <div class="mphone" id="p-shop"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller" id="shop-scroller"><img src="shots/mm-shop-full.png"><div class="ov" id="shop-ov"></div></div></div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 5 · IA -->
+  <section class="scene" id="s-chat">
+    <div id="c-word" class="abs mega outline" style="left:0;right:-40px;text-align:right;top:340px;font-size:520px">ASK</div>
+    <div id="c-k" class="abs kicker" style="left:1060px;top:230px">AI advisor</div>
+    <div id="c-t1" class="abs mega" style="left:1060px;top:290px;font-size:150px">ASK</div>
+    <div id="c-t2" class="abs mega" style="left:1060px;top:440px;font-size:140px;color:#9c7de8">ANYTHING.</div>
+    <div class="stat" id="c-st1" style="left:1060px;top:660px"><b>60</b>day streak</div>
+    <div class="stat" id="c-st2" style="left:1060px;top:750px"><b>+15</b>kg on bench</div>
+    <div class="stat" id="c-st3" style="left:1060px;top:840px"><b>⚡</b>focus = energy</div>
+    <div class="mphone" id="p-chat"><div class="notch"></div><div class="glass"><div id="chat-ui">
+      <div id="chat-top"><div class="burger"><i></i><i></i><i></i></div><b>CAVERN</b><span>🔥 60</span></div>
+      <div id="chat-card">
+        <div id="chat-status"><i></i>IA na nuvem (Gemini) · 4 áreas liberadas</div>
+        <div id="chat-list">
+          <div class="cb ai" id="cb0"><small>Orientador</small>Olá! Posso conversar sobre sua rotina, suas metas e como você está se sentindo, usando somente as categorias que escolher.</div>
+          <div class="cb me" id="cb1"><small>Você</small>Como mantenho minha sequência nesta semana?</div>
+          <div class="cb ai" id="chat-typing"><i></i><i></i><i></i></div>
+          <div class="cb ai" id="cb2"><small>Orientador</small><span id="cb2-text"></span></div>
+        </div>
+        <div id="chat-input">Escreva o que você gostaria de conversar…</div>
+        <div id="chat-send">Enviar</div>
+      </div>
+      <div id="chat-bottom"></div>
+    </div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 6 · todas as telas -->
+  <section class="scene" id="s-fan">
+    <div id="f-word" class="abs mega" style="left:0;right:0;top:34px;text-align:center;font-size:96px;letter-spacing:.06em"></div>
+    <div id="f-phones"></div>
+  </section>
+
+  <!-- 7 · encerramento -->
+  <section class="scene" id="s-out">
+    <svg id="out-fire" class="abs" viewBox="-60 -110 120 120" width="300" height="300" style="left:810px;top:150px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="out-logo" class="abs mega" style="left:0;right:0;top:470px;text-align:center;font-size:170px;letter-spacing:.2em;padding-left:.2em">CAVERN</div>
+    <div id="out-tag" class="abs" style="left:0;right:0;top:680px;text-align:center;font-size:44px;font-weight:600;color:#e7e2f5">Light it every day. Anywhere.</div>
+    <div id="out-chips" class="abs" style="left:0;right:0;top:790px;text-align:center"></div>
+    <div id="out-credit" class="abs hud" style="left:0;right:0;top:900px;text-align:center">Motion design &amp; code · Mobile reel 2026</div>
+  </section>
+
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+  <div id="letterbox"></div>
+  <div id="brandmark">CAVERN</div>
+  <div id="timecode">00:00:00</div>
+  <div id="progressbar"><i></i></div>
+</div>
+
+<script>
+// ===================== utilitários =====================
+const DURATION = 30, FPS = 60, BEAT = 0.5
+const $ = id => document.getElementById(id)
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const lerp = (a, b, t) => a + (b - a) * t
+const prog = (t, a, b) => clamp((t - a) / (b - a))
+const E = {
+  outExpo: x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x),
+  inExpo: x => x === 0 ? 0 : Math.pow(2, 10 * x - 10),
+  inOutExpo: x => x === 0 ? 0 : x === 1 ? 1 : x < .5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2,
+  outCubic: x => 1 - Math.pow(1 - x, 3),
+  inOutCubic: x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
+  inCubic: x => x * x * x,
+  outBack: x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2) },
+  outElastic: x => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - .75) * (2 * Math.PI / 3)) + 1,
+  outQuint: x => 1 - Math.pow(1 - x, 5),
+}
+const tw = (t, a, b, ease = E.outExpo) => ease(prog(t, a, b))
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let r = Math.imul(seed ^ seed >>> 15, 1 | seed); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296 } }
+const noise1 = (x, s = 0) => Math.sin(x * 1.7 + s) * .5 + Math.sin(x * 3.1 + s * 2.3) * .3 + Math.sin(x * 7.3 + s * .7) * .2
+function set(el, o) { const s = (typeof el === 'string' ? $(el) : el).style; for (const k in o) s[k] = o[k] }
+function show(el, on) { (typeof el === 'string' ? $(el) : el).style.visibility = on ? 'visible' : 'hidden' }
+// pulso decaindo a cada batida (para "punch" no ritmo)
+const beatPulse = (t, from = 0, to = 99) => t < from || t > to ? 0 : Math.exp(-((t - from) % BEAT) * 9)
+// momentos de impacto (flash, shake, aberração cromática)
+const HITS = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0, 13.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0]
+const hitAmount = t => HITS.reduce((m, h) => t >= h ? Math.max(m, Math.exp(-(t - h) * 7)) : m, 0)
+
+
+// ===================== partículas e pós-processamento =====================
+const bg = $('bg').getContext('2d'), fx = $('fx').getContext('2d')
+function sprite(color, size) { const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); const r = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2); r.addColorStop(0, color); r.addColorStop(.25, color.replace(/[\d.]+\)$/, '.55)')); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, size, size); return c }
+const sprEmber = sprite('rgba(255,170,90,1)', 64), sprPurple = sprite('rgba(176,140,255,1)', 64), sprGold = sprite('rgba(255,214,120,1)', 64)
+const R = rng(7)
+const embers = Array.from({ length: 220 }, () => ({ x: R() * 1920, y: R() * 1300, s: 4 + R() * 22, v: 40 + R() * 160, ph: R() * 10, amp: 10 + R() * 50, warm: R() < .72, tw: R() * 6 }))
+const confetti = Array.from({ length: 160 }, () => ({ a: R() * Math.PI * 2, v: 500 + R() * 1100, spin: (R() - .5) * 20, size: 8 + R() * 14, hue: [265, 30, 45, 200, 140][Math.floor(R() * 5)], g: 900 + R() * 600 }))
+const grains = Array.from({ length: 6 }, (_, k) => { const c = document.createElement('canvas'); c.width = 480; c.height = 270; const g = c.getContext('2d'); const d = g.createImageData(480, 270); const r = rng(100 + k); for (let i = 0; i < d.data.length; i += 4) { const v = r() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255 } g.putImageData(d, 0, 0); return c })
+
+function drawBackground(t, intensity, purpleMix) {
+  bg.clearRect(0, 0, 1920, 1080)
+  // vazamentos de luz que passeiam pela tela
+  bg.globalCompositeOperation = 'lighter'
+  const leaks = [[.25, .8, 'rgba(255,120,50,'], [.8, .25, 'rgba(140,100,255,'], [.55, .55, 'rgba(255,90,120,']]
+  leaks.forEach(([fx0, fy0, col], k) => {
+    const x = 1920 * (fx0 + Math.sin(t * .35 + k * 2) * .12), y = 1080 * (fy0 + Math.cos(t * .28 + k) * .1)
+    const g = bg.createRadialGradient(x, y, 0, x, y, 900)
+    g.addColorStop(0, col + (.10 * intensity).toFixed(3) + ')'); g.addColorStop(1, col + '0)')
+    bg.fillStyle = g; bg.fillRect(0, 0, 1920, 1080)
+  })
+  // brasas subindo
+  for (const p of embers) {
+    const y = ((p.y - p.v * t) % 1300 + 1300) % 1300 - 110
+    const x = p.x + Math.sin(t * 1.3 + p.ph) * p.amp
+    const flick = .55 + .45 * Math.sin(t * 9 + p.tw)
+    const life = clamp((1080 - y) / 1080)
+    const a = intensity * flick * (.25 + life * .75)
+    if (a < .02) continue
+    bg.globalAlpha = Math.min(1, a)
+    const spr = p.warm ? (purpleMix > .5 && p.s < 12 ? sprPurple : sprEmber) : sprPurple
+    bg.drawImage(spr, x - p.s, y - p.s, p.s * 2, p.s * 2)
+  }
+  bg.globalAlpha = 1; bg.globalCompositeOperation = 'source-over'
+}
+
+
+// ===================== construção (mobile) =====================
+const K = 352 / 1170 // px da captura (1170 de largura) → px do vidro do telefone
+const place = (id, cx, cy, transform) => set(id, { left: `${cx - 190}px`, top: `${cy - 395}px`, transform })
+function scrollImg(scroller, p) {
+  const img = scroller.querySelector('img')
+  const h = img.naturalHeight * 352 / (img.naturalWidth || 1)
+  scroller.style.transform = `translateY(${-Math.max(0, h - 762) * p}px)`
+}
+const slideIn = (id, t, a, dx = -80, dur = .5) => { const p = tw(t, a, a + dur); set(id, { opacity: p, transform: `translateX(${(1 - p) * dx}px)` }) }
+
+// abertura: duas linhas com letras em máscara
+const maskLetters = (id, text) => { $(id).innerHTML = [...text].map(c => c === ' ' ? '<span style="display:inline-block;width:.28em"></span>' : `<span class="mask"><span>${c}</span></span>`).join('') }
+maskLetters('o-line1', 'IN YOUR'); maskLetters('o-line2', 'POCKET.')
+
+// hábitos: toques sobre os botões reais "Concluir" (coordenadas da captura 1170×2532)
+const rowY = [1333, 1547, 1760, 1974]
+$('home-ov').innerHTML = rowY.map((y, i) => `<div class="done-chk" id="hk${i}" style="left:127px;top:${y - 36}px;width:72px;height:72px">✓</div><div class="done-btn" id="hb${i}" style="left:804px;top:${y - 65}px;width:246px;height:131px">Desfazer</div><div class="rip" id="hr${i}" style="left:927px;top:${y}px"></div>`).join('')
+
+// menu: item "Hábitos" + toque
+$('menu-ov').innerHTML = '<div class="menu-hl" id="mhl" style="left:48px;top:775px;width:908px;height:150px"></div><div class="rip" id="mrip" style="left:400px;top:850px"></div>'
+const navNames = ['Caverna', 'Hábitos', 'Metas', 'Foco', 'Check-in', 'Academia', 'Livros', 'Conquistas', 'Loja', 'Financeiro']
+$('m-chips').innerHTML = `<div style="position:absolute;left:1090px;top:760px;width:720px;display:flex;flex-wrap:wrap;gap:14px">${navNames.map((n, i) => `<span class="navchip" id="nc${i}" style="position:static">${n}</span>`).join('')}</div>`
+
+// loja: toque em "Comprar" do Fogo Azul
+$('shop-ov').innerHTML = '<div class="equipped" id="seq" style="left:637px;top:2013px;width:458px;height:133px">Equipado</div><div class="rip" id="srip" style="left:866px;top:2081px"></div>'
+
+// painel de telas
+const fanShots = ['mm-habits-full', 'mm-gym-full', 'mm-ach-full', 'mm-cavern-full', 'mm-checkins-full']
+$('f-phones').innerHTML = fanShots.map((s, i) => `<div class="mphone" id="fp${i}"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller" id="fs${i}"><img src="shots/${s}.png"></div></div></div><div class="sheen"></div></div>`).join('')
+const fanWords = ['HABITS', 'GYM', 'CAVERNS', 'CHECK-INS']
+$('out-chips').innerHTML = ['Android', 'iOS', 'PWA', 'Offline'].map((c, i) => `<span class="navchip" id="oc${i}" style="position:static;display:inline-block;margin:0 8px">${c}</span>`).join('')
+
+document.querySelectorAll('.mphone').forEach(p => p.querySelector('.glass').appendChild(p.querySelector('.sheen')))
+const aiFull = 'Você está com 60 dias seguidos — a maior sequência até agora. Seus treinos subiram de 40 kg para 55 kg no supino, e os dias com foco registrado tiveram mais energia. Para proteger a sequência nesta semana: deixe o treino marcado para a manhã e use sessões de foco curtas nos dias corridos. Qual hábito parece mais frágil hoje?'
+const aiWords = aiFull.split(' ')
+
+// partículas (do motor do showreel) ---------------------------------------
+function drawFx(t, frame) {
+  fx.clearRect(0, 0, 1920, 1080)
+  for (const [h, cx, cy] of [[1.0, 960, 560], [7.75, 1358, 874], [28.0, 960, 300]]) {
+    const st = t - h, small = h === 7.75
+    if (st > 0 && st < 1.4) {
+      const r = rng(h * 100)
+      for (let i = 0; i < (small ? 46 : 90); i++) {
+        const a = r() * Math.PI * 2, v = (small ? 200 : 300) + r() * (small ? 500 : 900), x = cx + Math.cos(a) * v * st, y = cy + Math.sin(a) * v * st + 600 * st * st
+        fx.globalAlpha = clamp(1 - st / 1.4) * (.5 + r() * .5); const s = 6 + r() * (small ? 10 : 16)
+        fx.globalCompositeOperation = 'lighter'; fx.drawImage(r() < .5 ? sprGold : sprEmber, x - s, y - s, s * 2, s * 2)
+      }
+      fx.globalCompositeOperation = 'source-over'
+    }
+  }
+  // confete das conquistas (16,1 s), saindo do anel
+  const ct = t - 16.1
+  if (ct > 0 && ct < 2.2) {
+    for (const c of confetti) {
+      const x = 330 + Math.cos(c.a) * c.v * ct * .8, y = 840 + Math.sin(c.a) * c.v * ct * .7 + .5 * c.g * ct * ct
+      fx.save(); fx.translate(x, y); fx.rotate(c.spin * ct); fx.globalAlpha = clamp(1 - ct / 2.2)
+      fx.fillStyle = `hsl(${c.hue} 85% 66%)`; fx.fillRect(-c.size / 2, -c.size / 4, c.size, c.size / 2); fx.restore()
+    }
+  }
+  fx.globalAlpha = 1
+  const v = fx.createRadialGradient(960, 540, 420, 960, 540, 1200)
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.72)')
+  fx.fillStyle = v; fx.fillRect(0, 0, 1920, 1080)
+  fx.globalAlpha = .055; fx.globalCompositeOperation = 'overlay'
+  fx.drawImage(grains[frame % grains.length], 0, 0, 1920, 1080)
+  fx.globalAlpha = 1; fx.globalCompositeOperation = 'source-over'
+}
+
+// ===================== cenas =====================
+const scenes = [['s-open', 0, 3.1], ['s-habit', 2.9, 5.1], ['s-menu', 4.9, 7.1], ['s-shop', 6.9, 9.1], ['s-chat', 8.9, 11.1], ['s-focus', 10.9, 13.1], ['s-gym', 12.9, 16.1], ['s-ach', 15.9, 18.1], ['s-check', 17.9, 20.1], ['s-cav', 19.9, 22.1], ['s-theme', 21.9, 24.1], ['s-fin', 23.9, 26.1], ['s-fan', 25.9, 28.1], ['s-out', 27.9, 30]]
+function sceneEnvelope(el, t, a, b) {
+  const inP = tw(t, a, a + .35, E.outExpo), outP = tw(t, b - .3, b, E.inExpo)
+  set(el, { opacity: (inP * (1 - outP)).toFixed(3), transform: `scale(${lerp(1.08, 1, inP) * lerp(1, 1.18, outP)})`, filter: `blur(${(1 - inP) * 14 + outP * 18}px)` })
+}
+const pad = n => String(Math.floor(n)).padStart(2, '0')
+const popRip = (id, t, a) => { const p = prog(t, a, a + .5); set(id, { opacity: p > 0 && p < 1 ? (1 - p) * .95 : 0, transform: `scale(${lerp(.3, 1.5, E.outCubic(p))})` }) }
+
+// ===================== cenas extras (7–13): foco, academia, conquistas, check-in, caverna, tema, financeiro =====================
+const phoneHtml = (id, inner) => `<div class="mphone" id="${id}"><div class="notch"></div><div class="glass"><div class="screen">${inner}</div><div class="sheen"></div></div></div>`
+const shotPhone = (id, img, scrollerId) => phoneHtml(id, `<div class="scroller"${scrollerId ? ` id="${scrollerId}"` : ''}><img src="shots/${img}.png"></div>`)
+const textBlock = (p, left, kicker, l1, l2, size, word, wordCss) => `<div id="${p}-word" class="abs mega outline" style="${wordCss}">${word}</div><div id="${p}-k" class="abs kicker" style="left:${left}px;top:${size >= 190 ? 190 : 170}px">${kicker}</div><div id="${p}-t1" class="abs mega" style="left:${left}px;top:${size >= 190 ? 250 : 225}px;font-size:${size}px">${l1}</div><div id="${p}-t2" class="abs mega" style="left:${left}px;top:${(size >= 190 ? 250 : 225) + size * .88}px;font-size:${size}px;color:#9c7de8">${l2}</div>`
+
+const gyLoads = [40, 42.5, 45, 45, 47.5, 50, 52.5, 55]
+const gx = i => 40 + i * (700 / 7), gy = v => 320 - (v - 38) / (57 - 38) * 280
+const gyPath = gyLoads.map((v, i) => `${i ? 'L' : 'M'}${gx(i)} ${gy(v)}`).join(' ')
+const checkRowsData = [['Discipline', 4.1], ['Focus', 4.3], ['Energy', 3.3]]
+
+$('s-fan').insertAdjacentHTML('beforebegin', `
+<section class="scene" id="s-focus">
+  ${textBlock('fo', 140, 'Focus', 'STAY', 'IN FLOW.', 190, 'FLOW', 'left:-40px;top:380px;font-size:520px')}
+  <div id="fo-time" class="bigcount" style="left:140px;top:690px;font-size:150px">00:00:00<small>minutes of deep focus</small></div>
+  <div class="abs" style="left:140px;top:930px;width:720px;height:10px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden"><i id="fo-fill" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#ff8a3d,#9c7de8)"></i></div>
+  ${shotPhone('p-focus', 'mm-focus')}
+</section>
+<section class="scene" id="s-gym">
+  ${textBlock('gy', 1060, 'Training', 'STRONGER.', '', 130, 'LIFT', 'left:0;right:-40px;text-align:right;top:360px;font-size:520px')}
+  <svg id="gy-chart" class="abs" viewBox="0 0 780 360" width="780" height="360" style="left:1060px;top:400px;overflow:visible">
+    ${[40, 45, 50, 55].map(v => `<line x1="30" x2="760" y1="${gy(v)}" y2="${gy(v)}" stroke="rgba(255,255,255,.1)" stroke-dasharray="6 10" stroke-width="2"/><text x="0" y="${gy(v) + 8}" fill="rgba(241,242,238,.5)" font-family="Bahnschrift" font-size="22">${v}</text>`).join('')}
+    <defs><linearGradient id="gyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9c7de8" stop-opacity=".45"/><stop offset="1" stop-color="#9c7de8" stop-opacity="0"/></linearGradient></defs>
+    <path id="gy-area" d="${gyPath} L${gx(7)} 340 L${gx(0)} 340 Z" fill="url(#gyg)"/>
+    <path id="gy-line" d="${gyPath}" pathLength="100" stroke-dasharray="0 100" fill="none" stroke="#b79cff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    ${gyLoads.map((v, i) => `<circle id="gd${i}" cx="${gx(i)}" cy="${gy(v)}" r="0" fill="${i === 7 ? '#b79cff' : '#0b0b0e'}" stroke="#b79cff" stroke-width="5"/>`).join('')}
+  </svg>
+  <div id="gy-delta" class="bigcount" style="left:1060px;top:790px;font-size:150px">+0,0 kg<small>bench press · 8 weeks</small></div>
+  ${shotPhone('p-gym', 'mm-gym-full', 'gy-scroller')}
+</section>
+<section class="scene" id="s-ach">
+  ${textBlock('ac', 140, 'Achievements', 'EARN', 'IT.', 230, 'WIN', 'left:-60px;top:360px;font-size:560px')}
+  <svg id="ac-ring" class="abs" viewBox="-170 -170 340 340" width="340" height="340" style="left:140px;top:690px;overflow:visible">
+    <circle r="140" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="22"/>
+    <circle id="ac-arc" r="140" fill="none" stroke="#9c7de8" stroke-width="22" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90)"/>
+    <text id="ac-count" y="26" text-anchor="middle" fill="#f1f2ee" font-family="Segoe UI" font-weight="900" font-size="84">0</text>
+  </svg>
+  <div id="ac-of" class="abs hud" style="left:520px;top:830px;font-size:26px">of 18 milestones</div>
+  ${shotPhone('p-ach', 'mm-ach-full', 'ac-scroller')}
+</section>
+<section class="scene" id="s-check">
+  ${textBlock('ck', 1060, 'Daily check-in', 'HOW WAS', 'YOUR DAY?', 120, 'DAY', 'left:0;right:-40px;text-align:right;top:360px;font-size:520px')}
+  ${checkRowsData.map(([n, v], i) => `<div id="cr${i}" class="abs" style="left:1060px;top:${640 + i * 110}px;width:700px"><div class="hud" style="font-size:22px;display:flex;justify-content:space-between"><span>${n}</span><b id="cv${i}" style="color:#f1f2ee">0.0 / 5</b></div><div style="margin-top:12px;height:14px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden"><i id="cf${i}" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#9c7de8,#c9b6ff)"></i></div></div>`).join('')}
+  ${shotPhone('p-check', 'mm-checkins-full', 'ck-scroller')}
+</section>
+<section class="scene" id="s-cav">
+  ${textBlock('cv', 140, 'Caverns', 'ONE', 'PATH.', 230, 'GO', 'left:-60px;top:380px;font-size:560px')}
+  <div id="cv-chips" class="abs" style="left:140px;top:790px"></div>
+  ${shotPhone('p-cav', 'mm-cavern-full', 'cv-scroller')}
+</section>
+<section class="scene" id="s-theme">
+  <div id="th-title" class="abs mega" style="left:0;right:0;top:36px;text-align:center;font-size:104px;letter-spacing:.04em">DAY &amp; NIGHT.</div>
+  ${shotPhone('p-dark', 'mm-home')}
+  ${shotPhone('p-light', 'mm-home-light')}
+</section>
+<section class="scene" id="s-fin">
+  ${textBlock('fi', 1060, 'Finance', 'KNOW YOUR', 'NUMBERS.', 120, 'R$', 'left:0;right:-60px;text-align:right;top:360px;font-size:560px')}
+  <div id="fi-bal" class="bigcount" style="left:1060px;top:600px;font-size:150px">R$ 0<small>balance</small></div>
+  <div id="fi-chips" class="abs" style="left:1060px;top:880px"></div>
+  ${shotPhone('p-fin', 'mm-finance-full', 'fi-scroller')}
+</section>`)
+
+const chipRow = (id, items) => { $(id).innerHTML = `<div style="display:flex;gap:14px;flex-wrap:wrap;width:760px">${items.map((n, i) => `<span class="navchip" id="${id}${i}" style="position:static">${n}</span>`).join('')}</div>` }
+chipRow('cv-chips', ['Auto-tracked', 'XP + Embers', 'Your rules'])
+chipRow('fi-chips', ['Income', 'Expenses', 'Goals'])
+
+// ---- helpers de cena ----
+const enter = (id, cx, t, a, dir) => { const p = tw(t, a, a + .7, E.outQuint); place(id, cx, 560, `translateY(${(1 - p) * 950}px) rotateY(${dir * lerp(30, 14, p) + Math.sin(t * 1.3) * 2}deg) rotateZ(${-dir * lerp(10, 2, p)}deg) scale(1.28)`); return p }
+const sheenSweep = (id, t, a) => { $(id).querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, a, a + .8))}%)` }
+const copyIn = (p, t, a, dir) => { set(p + '-k', { opacity: tw(t, a, a + .3), transform: `translateX(${(1 - tw(t, a, a + .5)) * 50 * dir}px)` }); slideIn(p + '-t1', t, a + .1, 80 * dir); slideIn(p + '-t2', t, a + .25, 80 * dir) }
+const wordDrift = (p, t, a, b, dir = -1) => set(p + '-word', { transform: `translateX(${lerp(60 * -dir, 200 * dir, prog(t, a, b))}px)` })
+const chipsIn = (id, n, t, a) => { for (let i = 0; i < n; i++) { const s = a + i * .1, p = tw(t, s, s + .35, E.outBack); set(id + i, { opacity: tw(t, s, s + .12), transform: `translateY(${(1 - p) * 30}px) scale(${lerp(.8, 1, p)})` }) } }
+const scrollPx = (scroller, px) => { scroller.style.transform = `translateY(${-px}px)` }
+
+function renderExtras(t) {
+  // ---------- 7 · foco ----------
+  if (t >= 10.9 && t <= 13.1) {
+    enter('p-focus', 1250, t, 11.0, -1); sheenSweep('p-focus', t, 11.8)
+    const secs = Math.round(lerp(0, 25 * 60 + 4, tw(t, 11.3, 12.5, E.outCubic)))
+    $('fo-time').firstChild.nodeValue = `00:${pad(secs / 60)}:${pad(secs % 60)}`
+    set('fo-time', { opacity: tw(t, 11.2, 11.5), transform: `scale(${1 + beatPulse(t, 11, 13) * .03})` })
+    set('fo-fill', { width: `${tw(t, 11.3, 12.6, E.inOutCubic) * 100}%` })
+    copyIn('fo', t, 11.15, -1); wordDrift('fo', t, 10.9, 13.1, 1)
+  }
+  // ---------- 8 · academia (3,2 s) ----------
+  if (t >= 12.9 && t <= 16.1) {
+    enter('p-gym', 690, t, 13.0, 1); sheenSweep('p-gym', t, 13.6)
+    scrollImg($('gy-scroller'), tw(t, 14.4, 15.9, E.inOutCubic) * .4)
+    const dp = tw(t, 13.3, 14.8, E.inOutCubic)
+    $('gy-line').setAttribute('stroke-dasharray', `${(dp * 100).toFixed(2)} 100`)
+    $('gy-area').style.clipPath = `inset(0 ${(1 - dp) * 100}% 0 0)`
+    gyLoads.forEach((_, i) => { const a = 13.3 + i / 7 * 1.5; $('gd' + i).setAttribute('r', (11 * tw(t, a, a + .3, E.outBack)).toFixed(2)) })
+    $('gy-delta').firstChild.nodeValue = `+${(15 * tw(t, 13.4, 14.9, E.outCubic)).toFixed(1).replace('.', ',')} kg`
+    set('gy-delta', { opacity: tw(t, 13.4, 13.7), transform: `scale(${1 + beatPulse(t, 13, 16) * .03})` })
+    set('gy-chart', { opacity: tw(t, 13.2, 13.5), transform: `translateY(${(1 - tw(t, 13.2, 13.9)) * 40}px)` })
+    set('gy-k', { opacity: tw(t, 13.15, 13.45), transform: `translateX(${(1 - tw(t, 13.15, 13.65)) * 50}px)` }); slideIn('gy-t1', t, 13.25, 80)
+    set('gy-t2', { opacity: 0 }); wordDrift('gy', t, 12.9, 16.1)
+  }
+  // ---------- 9 · conquistas ----------
+  if (t >= 15.9 && t <= 18.1) {
+    enter('p-ach', 1250, t, 16.0, -1); sheenSweep('p-ach', t, 16.6)
+    scrollImg($('ac-scroller'), tw(t, 16.6, 18.0, E.inOutCubic) * .18)
+    const ap = tw(t, 16.1, 17.2, E.outCubic)
+    $('ac-arc').setAttribute('stroke-dasharray', `${(ap * 61).toFixed(2)} 100`)
+    $('ac-count').textContent = Math.round(11 * ap)
+    set('ac-ring', { transform: `scale(${lerp(.5, 1, tw(t, 16.05, 16.6, E.outBack)) + beatPulse(t, 16, 18) * .03}) rotate(${lerp(-90, 0, tw(t, 16.05, 16.8))}deg)` })
+    copyIn('ac', t, 16.15, -1); wordDrift('ac', t, 15.9, 18.1, 1)
+  }
+  // ---------- 10 · check-in ----------
+  if (t >= 17.9 && t <= 20.1) {
+    enter('p-check', 690, t, 18.0, 1); sheenSweep('p-check', t, 18.6)
+    scrollImg($('ck-scroller'), tw(t, 18.7, 20.0, E.inOutCubic) * .22)
+    checkRowsData.forEach(([, v], i) => { const a = 18.4 + i * .15, p = tw(t, a, a + .9, E.outCubic); $('cf' + i).style.width = `${p * v / 5 * 100}%`; $('cv' + i).textContent = `${(v * p).toFixed(1)} / 5`; set('cr' + i, { opacity: tw(t, a, a + .2), transform: `translateX(${(1 - tw(t, a, a + .5)) * 60}px)` }) })
+    copyIn('ck', t, 18.15, 1); wordDrift('ck', t, 17.9, 20.1)
+  }
+  // ---------- 11 · caverna ----------
+  if (t >= 19.9 && t <= 22.1) {
+    enter('p-cav', 1250, t, 20.0, -1); sheenSweep('p-cav', t, 20.6)
+    scrollImg($('cv-scroller'), tw(t, 20.6, 22.0, E.inOutCubic) * .2)
+    copyIn('cv', t, 20.15, -1); wordDrift('cv', t, 19.9, 22.1, 1); chipsIn('cv-chips', 3, t, 20.6)
+  }
+  // ---------- 12 · dia e noite ----------
+  if (t >= 21.9 && t <= 24.1) {
+    const pd = tw(t, 22.0, 22.7, E.outQuint), pl = tw(t, 22.2, 22.9, E.outQuint)
+    place('p-dark', 800, 590, `translate(${(1 - pd) * -700}px, ${(1 - pd) * 500}px) rotateY(${lerp(40, 20, pd) + Math.sin(t * 1.4) * 2}deg) rotateZ(${lerp(-12, -3, pd)}deg) scale(1.02)`)
+    place('p-light', 1130, 590, `translate(${(1 - pl) * 700}px, ${(1 - pl) * 500}px) rotateY(${lerp(-40, -20, pl) + Math.sin(t * 1.4 + 1) * 2}deg) rotateZ(${lerp(12, 3, pl)}deg) scale(1.02)`)
+    sheenSweep('p-dark', t, 22.8); sheenSweep('p-light', t, 22.95)
+    set('th-title', { opacity: tw(t, 22.05, 22.4), transform: `translateY(${(1 - tw(t, 22.05, 22.7)) * -40}px)`, letterSpacing: `${lerp(.3, .04, tw(t, 22.05, 22.8))}em` })
+  }
+  // ---------- 13 · financeiro ----------
+  if (t >= 23.9 && t <= 26.1) {
+    enter('p-fin', 690, t, 24.0, 1); sheenSweep('p-fin', t, 24.6)
+    scrollPx($('fi-scroller'), tw(t, 24.7, 26.0, E.inOutCubic) * 420)
+    const bp = tw(t, 24.3, 25.4, E.outCubic)
+    $('fi-bal').firstChild.nodeValue = `R$ ${Math.round(12053 * bp).toLocaleString('pt-BR')}`
+    set('fi-bal', { opacity: tw(t, 24.2, 24.5), transform: `scale(${1 + beatPulse(t, 24, 26) * .03})` })
+    copyIn('fi', t, 24.15, 1); wordDrift('fi', t, 23.9, 26.1); chipsIn('fi-chips', 3, t, 24.8)
+  }
+}
+
+function render(t) {
+  const frame = Math.round(t * FPS)
+  const hit = hitAmount(t)
+  set('stage', { transform: `translate(${noise1(t * 40, 1) * hit * 14}px, ${noise1(t * 40, 5) * hit * 10}px)` })
+  const ca = hit * 6
+  document.querySelectorAll('.scene').forEach(s => { s.style.textShadow = ca > .3 ? `${ca}px 0 rgba(255,60,90,.55), ${-ca}px 0 rgba(60,200,255,.55)` : 'none' })
+  set('flash', { opacity: (Math.max(...[1.0, 28.0].map(h => t >= h ? Math.exp(-(t - h) * 11) : 0)) * .42 + hit * .06).toFixed(3) })
+  $('letterbox').style.setProperty('--lb', `${110 * (1 - tw(t, 1.0, 2.0, E.inOutCubic)) + 110 * tw(t, 29.0, 29.8, E.inOutCubic)}px`)
+  $('timecode').textContent = `${pad(t)}:${pad((t % 1) * FPS)} · ${String(frame).padStart(4, '0')}`
+  set($('progressbar').firstElementChild, { width: `${t / DURATION * 100}%` })
+  const chromeOn = tw(t, 2.0, 2.5) * (1 - tw(t, 28.6, 29.0))
+  set('timecode', { opacity: chromeOn }); set('brandmark', { opacity: chromeOn }); set('progressbar', { opacity: chromeOn })
+  const intensity = t < 1 ? .25 + t * .4 : t > 29.3 ? lerp(1, 0, prog(t, 29.3, 30)) : .9 + beatPulse(t, 2, 28) * .35
+  drawBackground(t, intensity, prog(t, 6, 26))
+
+  for (const [id, a, b] of scenes) { const on = t >= a && t <= b; show(id, on); if (on) sceneEnvelope($(id), t, a, b) }
+  if (t < .4) set('s-open', { opacity: 1, filter: 'none', transform: 'none' })
+  if (t > 29.6) set('s-out', { filter: 'none' })
+
+  // ---------- 1 · abertura ----------
+  if (t <= 3.1) {
+    const ign = tw(t, .95, 1.5, E.outElastic), pre = tw(t, 0, 1.0, E.inCubic)
+    set('fire-big', { transform: `translateY(${lerp(320, 0, pre)}px) scale(${t < 1 ? lerp(.05, .14, pre) : lerp(.14, 1, ign)}) scaleY(${1 + noise1(t * 6) * .06}) skewX(${noise1(t * 5, 2) * 4}deg)`, opacity: t < .15 ? t / .15 : 1, filter: `drop-shadow(0 0 ${40 + hit * 80}px rgba(255,140,60,.8))` })
+    const core = $('fire-big').querySelector('.core'); if (core) { core.style.transformBox = 'fill-box'; core.style.transformOrigin = '50% 100%'; core.style.transform = `scale(${1 + noise1(t * 11, 3) * .08})` }
+    ;['o-line1', 'o-line2'].forEach((id, k) => $(id).querySelectorAll('.mask > span').forEach((s, i) => { const p = tw(t, 1.3 + k * .3 + i * .05, 1.8 + k * .3 + i * .05, E.outExpo); s.style.transform = `translateY(${(1 - p) * 110}%) rotate(${(1 - p) * 8}deg)` }))
+    set('o-line1', { textShadow: `0 0 ${30 + hit * 60}px rgba(156,125,232,.55)` })
+    set('o-tag', { opacity: tw(t, 2.0, 2.3), letterSpacing: `${lerp(.6, .32, tw(t, 2.0, 2.5))}em` })
+    set('fire-big', { top: `${lerp(90, 40, tw(t, 1.3, 2.6, E.inOutCubic))}px` })
+  }
+
+  // ---------- 2 · um toque ----------
+  if (t >= 2.9 && t <= 5.1) {
+    const pIn = tw(t, 3.0, 3.75, E.outQuint)
+    place('p-home', 1250, 560, `translateY(${(1 - pIn) * 950}px) rotateY(${lerp(-30, -14, pIn) + Math.sin(t * 1.4) * 2}deg) rotateZ(${lerp(10, 2, pIn)}deg) scale(1.28)`)
+    $('p-home').querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, 4.6, 5.1))}%)`
+    let done = 0
+    rowY.forEach((_, i) => {
+      const a = 3.85 + i * .3
+      popRip('hr' + i, t, a)
+      const s = tw(t, a + .1, a + .4, E.outBack), on = t > a + .1
+      ;['hb', 'hk'].forEach(p => set(p + i, { opacity: on ? 1 : 0, transform: `scale(${on ? s : .6})` }))
+      if (t > a + .15) done += 1
+    })
+    $('h-count').firstChild.nodeValue = `${done}/4`
+    set('h-count', { opacity: tw(t, 3.3, 3.7), transform: `scale(${1 + beatPulse(t, 3, 5) * .04})` })
+    const sp = tw(t, 4.9, 5.1, E.outBack)
+    $('h-streak-n').textContent = t > 4.95 ? 61 : 60
+    set('h-streak', { opacity: tw(t, 4.8, 4.95), transform: `scale(${lerp(.8, 1, sp)})` })
+    set('h-word', { transform: `translateX(${lerp(60, -240, prog(t, 2.9, 5.1))}px)` })
+    set('h-k', { opacity: tw(t, 3.1, 3.4), transform: `translateX(${(1 - tw(t, 3.1, 3.6)) * -50}px)` })
+    slideIn('h-t1', t, 3.2); slideIn('h-t2', t, 3.35)
+  }
+
+  // ---------- 3 · menu ----------
+  if (t >= 4.9 && t <= 7.1) {
+    const pIn = tw(t, 5.0, 5.7, E.outQuint)
+    place('p-menu', 690, 560, `translateY(${(1 - pIn) * 950}px) rotateY(${lerp(30, 14, pIn) + Math.sin(t * 1.3) * 2}deg) rotateZ(${lerp(-10, -2, pIn)}deg) scale(1.28)`)
+    $('p-menu').querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, 5.7, 6.5))}%)`
+    const open = tw(t, 5.55, 6.1, E.outQuint), close = tw(t, 6.7, 7.05, E.inCubic)
+    const visible = open * (1 - close)
+    set('menu-slide', { transform: `translateX(${-(1 - visible) * 352}px)` })
+    set('menu-dim', { opacity: .5 * visible })
+    popRip('mrip', t, 6.25)
+    set('mhl', { opacity: t > 6.3 && t < 6.75 ? tw(t, 6.3, 6.4) : 0 })
+    set('m-word', { transform: `translateX(${lerp(-60, 160, prog(t, 4.9, 7.1))}px)` })
+    set('m-k', { opacity: tw(t, 5.1, 5.4), transform: `translateX(${(1 - tw(t, 5.1, 5.6)) * 50}px)` })
+    slideIn('m-t1', t, 5.2, 80); slideIn('m-t2', t, 5.35, 80)
+    navNames.forEach((_, i) => { const a = 5.7 + i * .07, p = tw(t, a, a + .35, E.outBack); set('nc' + i, { opacity: tw(t, a, a + .12), transform: `translateY(${(1 - p) * 30}px) scale(${lerp(.8, 1, p)})` }) })
+  }
+
+  // ---------- 4 · loja ----------
+  if (t >= 6.9 && t <= 9.1) {
+    const pIn = tw(t, 7.0, 7.7, E.outQuint)
+    place('p-shop', 1250, 560, `translateY(${(1 - pIn) * 950}px) rotateY(${lerp(-30, -14, pIn) + Math.sin(t * 1.2) * 2}deg) rotateZ(${lerp(10, 2, pIn)}deg) scale(1.28)`)
+    $('p-shop').querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, 7.8, 8.6))}%)`
+    popRip('srip', t, 7.75)
+    const eq = tw(t, 7.85, 8.15, E.outBack), eqOn = t > 7.85
+    set('seq', { opacity: eqOn ? 1 : 0, transform: `scale(${eqOn ? eq : .7})` })
+    scrollImg($('shop-scroller'), tw(t, 8.3, 9.1, E.inOutCubic) * .5)
+    $('s-n').textContent = Math.round(lerp(2650, 2150, tw(t, 7.8, 8.3, E.outCubic)))
+    set('s-count', { opacity: tw(t, 7.2, 7.5), transform: `scale(${1 + beatPulse(t, 7, 9) * .04})` })
+    set('s-word', { transform: `translateX(${lerp(40, -220, prog(t, 6.9, 9.1))}px)` })
+    set('s-k', { opacity: tw(t, 7.1, 7.4), transform: `translateX(${(1 - tw(t, 7.1, 7.6)) * -50}px)` })
+    slideIn('s-t1', t, 7.2); slideIn('s-t2', t, 7.35)
+  }
+
+  // ---------- 5 · IA ----------
+  if (t >= 8.9 && t <= 11.1) {
+    const pIn = tw(t, 9.0, 9.7, E.outQuint)
+    place('p-chat', 690, 560, `translateY(${(1 - pIn) * 950}px) rotateY(${lerp(30, 14, pIn) + Math.sin(t * 1.3) * 2}deg) rotateZ(${lerp(-10, -2, pIn)}deg) scale(1.28)`)
+    $('p-chat').querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, 9.9, 10.7))}%)`
+    const me = tw(t, 9.4, 9.75, E.outBack)
+    set('cb1', { display: t > 9.4 ? 'block' : 'none', transform: `translateY(${(1 - me) * 24}px) scale(${lerp(.9, 1, me)})`, transformOrigin: '100% 100%' })
+    const typingOn = t > 9.75 && t < 10.15
+    set('chat-typing', { display: typingOn ? 'block' : 'none' })
+    $('chat-typing').querySelectorAll('i').forEach((d, i) => { d.style.transform = `translateY(${Math.sin(t * 14 - i * .9) * -3}px)`; d.style.opacity = .5 + Math.sin(t * 14 - i * .9) * .3 })
+    const rp = tw(t, 10.15, 10.4, E.outBack)
+    set('cb2', { display: t > 10.15 ? 'block' : 'none', transform: `translateY(${(1 - rp) * 20}px)`, transformOrigin: '0 100%' })
+    const n = Math.round(aiWords.length * tw(t, 10.2, 10.95, x => x))
+    $('cb2-text').innerHTML = aiWords.slice(0, n).join(' ') + (n < aiWords.length && t > 10.2 ? '<span style="color:#9c7de8">▍</span>' : '')
+    set('chat-send', { background: t > 9.4 ? '#7c5ad4' : '#4a3a80', color: t > 9.4 ? '#fff' : '#aeb4ac' })
+    ;['c-st1', 'c-st2', 'c-st3'].forEach((id, i) => { const a = 10.3 + i * .14, p = tw(t, a, a + .4, E.outBack); set(id, { opacity: tw(t, a, a + .15), transform: `translateX(${(1 - p) * 120}px) scale(${lerp(.85, 1, p)})` }) })
+    set('c-word', { transform: `translateX(${lerp(40, -200, prog(t, 8.9, 11.1))}px)` })
+    set('c-k', { opacity: tw(t, 9.1, 9.4), transform: `translateX(${(1 - tw(t, 9.1, 9.6)) * 50}px)` })
+    slideIn('c-t1', t, 9.2, 80); slideIn('c-t2', t, 9.35, 80)
+  }
+
+  renderExtras(t)
+  const u = t - 15
+  // ---------- 6 · todas as telas ----------
+  if (u >= 10.9 && u <= 13.1) {
+    const spread = [-760, -380, 0, 380, 760], ry = [30, 16, 0, -16, -30], sc = [.8, .94, 1.12, .94, .8], order = [0, 1, 4, 3, 2]
+    fanShots.forEach((_, i) => {
+      const a = 11.0 + order[i] * .09, p = tw(u, a, a + .6, E.outQuint)
+      place('fp' + i, 960 + spread[i] * lerp(.55, 1, p), 610 + Math.sin(u * 1.5 + i) * 8, `translateY(${(1 - p) * 900}px) rotateY(${ry[i] * p}deg) rotateZ(${(1 - p) * (i - 2) * 6}deg) scale(${sc[i] * lerp(.9, 1, p)})`)
+      set('fp' + i, { zIndex: String(10 - Math.abs(i - 2)) })
+      scrollImg($('fs' + i), tw(u, 11.4, 13.0, E.inOutCubic) * (i === 2 ? .6 : .35 + i * .08))
+      $('fp' + i).querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(u, 11.7 + i * .1, 12.5 + i * .1))}%)`
+    })
+    const wi = Math.floor((u - 11.0) / BEAT)
+    if (u >= 11.0 && wi < fanWords.length) {
+      const lp = ((u - 11.0) % BEAT) / BEAT
+      $('f-word').textContent = fanWords[wi]
+      set('f-word', { opacity: lp < .75 ? 1 : 1 - (lp - .75) * 4, transform: `scale(${lerp(1.25, 1, E.outExpo(lp))})`, letterSpacing: `${lerp(.14, .02, E.outExpo(lp))}em` })
+    } else set('f-word', { opacity: 0 })
+  }
+
+  // ---------- 7 · encerramento ----------
+  if (u >= 12.9) {
+    const ig = tw(u, 13.0, 13.6, E.outElastic)
+    set('out-fire', { transform: `scale(${lerp(0, 1, ig)}) scaleY(${1 + noise1(u * 6) * .07}) skewX(${noise1(u * 5) * 4}deg)`, filter: `drop-shadow(0 0 ${50 + Math.sin(u * 8) * 10}px rgba(255,140,60,.85))` })
+    const lp = tw(u, 13.15, 13.9, E.outExpo)
+    set('out-logo', { opacity: lp, letterSpacing: `${lerp(.8, .2, lp)}em`, filter: `blur(${(1 - lp) * 20}px)`, textShadow: '0 0 50px rgba(156,125,232,.6)' })
+    set('out-tag', { opacity: tw(u, 13.5, 13.9), transform: `translateY(${(1 - tw(u, 13.5, 14)) * 30}px)` })
+    ;['oc0', 'oc1', 'oc2', 'oc3'].forEach((id, i) => { const a = 13.7 + i * .1, p = tw(u, a, a + .35, E.outBack); set(id, { opacity: tw(u, a, a + .12), transform: `translateY(${(1 - p) * 24}px) scale(${lerp(.8, 1, p)})` }) })
+    set('out-credit', { opacity: tw(u, 14.0, 14.3) })
+    set('s-out', { opacity: 1 - tw(u, 14.5, 15, E.inCubic) })
+  }
+
+  drawFx(t, frame)
+}
+
+window.render = render
+window.ready = Promise.all([...document.images].map(i => i.decode().catch(() => {})))
+if (location.search.includes('play')) { const t0 = performance.now(); const loop = now => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop) }; window.ready.then(() => requestAnimationFrame(loop)) }
+else render(0)
+
+</script>
+</body>
+</html>
