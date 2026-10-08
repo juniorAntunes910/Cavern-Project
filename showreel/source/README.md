@@ -15,7 +15,7 @@ Both `.mjs` scripts import Playwright, so copy them into `web/scripts/` and run 
 
 Segunda peça, de 30 s, focada no app no celular: mesmo motor do showreel, cenas e trilha novas.
 
-- `reel-mobile.html` — gerado por `python build-mobile.py` a partir de `reel.html` (CSS e motor reaproveitados), `mobile.css`, `mobile.body.html` e `mobile.scene.js`. Edite os três arquivos `mobile.*`, não o `.html` gerado. Abra `reel-mobile.html?play` para pré-visualizar.
+- `reel-mobile.html` (inglês) e `reel-mobile-pt.html` (PT-BR) — gerados por `python build-mobile.py` a partir de `reel.html` (CSS e motor reaproveitados), `mobile.css`, `mobile.body.html` e `mobile.scene.js`. Edite os arquivos `mobile.*`, não os `.html` gerados. Os textos em português ficam em `mobile.pt.js` (um mapa id → texto); a trilha é só música, então o áudio é o mesmo nas duas versões. Abra `reel-mobile.html?play` para pré-visualizar.
 - `audio-mobile.mjs` — trilha de 30 s, sintetizada: `node audio-mobile.mjs soundtrack-mobile.wav`.
 - `capture-mobile.mjs` — semeia dados de demonstração e captura as telas reais em 390×844 @3x (`shots/mm-*.png`). O servidor de desenvolvimento precisa estar rodando (`BASE=http://127.0.0.1:5173` por padrão).
 - Os toques, o menu e a loja são sobrepostos às capturas reais em coordenadas da imagem (1170×2532); o bate-papo é HTML dentro do telefone, com a resposta da IA simulada.

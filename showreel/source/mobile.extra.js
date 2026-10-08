@@ -34,7 +34,7 @@ $('s-fan').insertAdjacentHTML('beforebegin', `
     <circle id="ac-arc" r="140" fill="none" stroke="#9c7de8" stroke-width="22" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90)"/>
     <text id="ac-count" y="26" text-anchor="middle" fill="#f1f2ee" font-family="Segoe UI" font-weight="900" font-size="84">0</text>
   </svg>
-  <div class="abs hud" style="left:520px;top:830px;font-size:26px">of 18 milestones</div>
+  <div id="ac-of" class="abs hud" style="left:520px;top:830px;font-size:26px">of 18 milestones</div>
   ${shotPhone('p-ach', 'mm-ach-full', 'ac-scroller')}
 </section>
 <section class="scene" id="s-check">

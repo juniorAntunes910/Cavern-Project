@@ -1,4 +1,4 @@
-"""Monta reel-mobile.html reaproveitando o CSS e o motor (utilitários, partículas, fundo) de reel.html.
+"""Monta reel-mobile.html (EN) e reel-mobile-pt.html (PT-BR) reaproveitando o CSS e o motor (utilitários, partículas, fundo) de reel.html.
 Uso: python build-mobile.py   (gera reel-mobile.html ao lado de reel.html)"""
 import re, pathlib
 
@@ -18,7 +18,11 @@ scene_js = (here / 'mobile.scene.js').read_text(encoding='utf8')
 extra_js = (here / 'mobile.extra.js').read_text(encoding='utf8')
 scene_js = scene_js.replace('function render(t) {', extra_js + '\nfunction render(t) {', 1)
 
-out = f"""<!doctype html>
+def build(lang):
+    js = scene_js
+    if lang == "pt":
+        js = js.replace("window.render = render", pt_js + "\nwindow.render = render", 1)
+    return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -32,10 +36,14 @@ out = f"""<!doctype html>
 <script>
 {js_util}
 {js_fx}
-{scene_js}
+{js}
 </script>
 </body>
 </html>
 """
-(here / 'reel-mobile.html').write_text(out, encoding='utf8')
-print('reel-mobile.html', len(out), 'bytes')
+
+pt_js = (here / 'mobile.pt.js').read_text(encoding='utf8')
+for lang, name in (('en', 'reel-mobile.html'), ('pt', 'reel-mobile-pt.html')):
+    out = build(lang)
+    (here / name).write_text(out, encoding='utf8')
+    print(name, len(out), 'bytes')
