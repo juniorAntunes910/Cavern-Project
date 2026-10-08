@@ -1,0 +1,28 @@
+.pluggy-panel { margin-bottom: 24px; }
+.pluggy-panel .muted { color: var(--muted); margin: 4px 0 0; }
+.pluggy-connection { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 10px; padding: 14px; }
+.pluggy-connection-head { align-items: flex-start; display: flex; gap: 12px; justify-content: space-between; }
+.pluggy-connection-head > div { display: grid; gap: 3px; min-width: 0; }
+.pluggy-connection-head small, .pluggy-accounts small { color: var(--muted); display: block; font-size: .78rem; }
+.pluggy-warn { color: #ffc071 !important; }
+.pluggy-accounts { display: grid; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.pluggy-accounts label { align-items: center; color: var(--text); display: flex; gap: 10px; min-height: 44px; }
+.pluggy-accounts input[type='checkbox'] { accent-color: var(--purple); flex: none; height: 20px; min-height: 0; padding: 0; width: 20px; }
+.pluggy-accounts span { min-width: 0; }
+.pluggy-steps { color: var(--muted); display: grid; font-size: .88rem; gap: 6px; line-height: 1.45; margin: 0; padding-left: 20px; }
+.pluggy-steps a { color: var(--purple); }
+.pluggy-error { border-color: var(--danger); color: var(--danger); }
+
+/* Lançamentos importados */
+.transaction-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.transaction-badge { background: var(--purpleSoft); border-radius: 999px; color: var(--purple); font-size: .68rem; font-weight: 800; letter-spacing: .04em; padding: 2px 8px; text-transform: uppercase; }
+.transaction-badge.pending { background: color-mix(in srgb, #ff9b4a 20%, transparent); color: #ffc071; }
+.transaction-category { margin-top: 6px; max-width: 220px; }
+.finance-filter { margin-bottom: 12px; }
+.transaction .neutral { color: var(--muted); }
+
+@media (max-width: 700px) {
+  .pluggy-connection-head { flex-direction: column; }
+  .pluggy-connection-head > button { width: 100%; }
+  .transaction-category { max-width: none; }
+}
