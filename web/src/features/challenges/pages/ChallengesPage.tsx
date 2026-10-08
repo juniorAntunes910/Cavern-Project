@@ -16,7 +16,6 @@ import { generateInsights } from '../../advisor/services/insight.service'
 import { AiDataConsentDialog } from '../../advisor/components/AiDataConsentDialog'
 import { AiAnalysisDialog } from '../../advisor/components/AiAnalysisDialog'
 import { buildAiContext, saveAiDataConsent, type AiDataCategory } from '../../advisor/services/ai-data.service'
-import '../../challenges/challenges.css'
 import '../../challenges/systems.css'
 
 export function ChallengesPage() {

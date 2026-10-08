@@ -8,6 +8,7 @@ import { gymDataKeys } from './features/gym/services/gym.service'
 import { registerAppServiceWorker } from './lib/pwa'
 import './index.css'
 import './motion.css'
+import './mobile-fixes.css'
 
 async function startApp() {
   try {

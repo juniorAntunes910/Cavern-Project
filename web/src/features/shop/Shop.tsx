@@ -12,7 +12,6 @@ import { shopItems, type ShopItem, type ShopItemType } from "./domain/shop";
 import { buyItem, ownsItem } from "./services/shop.service";
 import { StreakScene } from "../Progress";
 import { useLocalRevision } from "../../lib/use-local-revision";
-import "../challenges/challenges.css";
 import "./shop.css";
 
 function loadoutField(item: ShopItem): keyof LocalCustomization {

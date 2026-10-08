@@ -1,0 +1,90 @@
+/* Correções de UX no celular. Carregada por último em main.tsx (depois de motion.css). */
+
+/* ---------- Disclosure: todo <summary> de formulário mostra que abre ---------- */
+.form-details > summary, .nav-more > summary { align-items: center; display: flex; gap: 10px; justify-content: space-between; list-style: none; }
+.form-details > summary::-webkit-details-marker, .nav-more > summary::-webkit-details-marker { display: none; }
+.form-details > summary::after, .nav-more > summary::after {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  content: '';
+  flex: none;
+  float: none;
+  height: 7px;
+  margin: 0 4px 4px 0;
+  transform: rotate(45deg);
+  transition: transform var(--dur-base, .26s) var(--ease-out, ease);
+  width: 7px;
+}
+.form-details[open] > summary::after, .nav-more[open] > summary::after { margin-bottom: -4px; transform: rotate(-135deg); }
+
+/* ---------- Seletor numérico: valor centralizado, não colado no botão "+" ---------- */
+.stepper-manual input, .form .stepper-manual input, .goal-edit-form .stepper-manual input, .finance-goal .stepper-manual input { text-align: center; }
+
+/* ---------- Percentual da meta na tela inicial não quebra ("14" / "%") ---------- */
+.today-goals a strong { flex: none; white-space: nowrap; }
+
+/* ---------- Datas: só a primeira letra maiúscula ("08 de out. de 2026", "Outubro de 2026") ---------- */
+.log-date-copy strong, .checkin-month-nav span { text-transform: none; }
+.log-date-copy strong { display: block; }
+.log-date-copy strong::first-letter, .checkin-month-nav span::first-letter { text-transform: uppercase; }
+.checkin-month-nav span { display: inline-block; }
+
+/* ---------- Checkboxes de vínculo (editar meta/hábito): o estilo de campo de texto deixava a caixa com 64px ---------- */
+:is(.goal-edit-form, .habit-edit-form, .habit-secondary) .goal-selector label { align-items: center; color: var(--text); display: flex; gap: 10px; min-height: 40px; }
+:is(.goal-edit-form, .habit-edit-form, .habit-secondary) .goal-selector input[type='checkbox'] { flex: none; height: 20px; min-height: 0; padding: 0; width: 20px; }
+
+/* ---------- Montar treino: rótulo acima do campo, como nos demais formulários ---------- */
+.gym-editor > label { color: var(--muted); display: grid; gap: 7px; }
+.gym-editor .plan-cards:empty::before { color: var(--muted); content: 'Nenhum exercício ainda. Escolha abaixo.'; font-size: .9rem; }
+
+/* ---------- Diálogos: o fundo rola quando o conteúdo é maior que a tela (vale para todos, não só o editor) ---------- */
+.dialog-backdrop { overscroll-behavior: contain; }
+.confirm-dialog > .section-heading > button { flex: none; }
+
+@media (max-width: 700px) {
+  /* Fundo do menu lateral: o estilo global de botão (roxo) cobria o escurecimento */
+  button.mobile-menu-backdrop:not(.theme-toggle):not(.link):not(.subtle):not(.danger) {
+    background: rgba(3, 5, 4, .66);
+    box-shadow: none;
+    filter: none;
+    transform: none;
+  }
+
+  /* Campo focado (teclado aberto) e âncoras não ficam escondidos atrás da barra superior fixa */
+  html { scroll-padding-top: calc(76px + max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px))); }
+
+  /* Botões só com ícone ("×" de excluir meta) com área de toque mínima */
+  .icon-button { min-height: 44px; min-width: 44px; }
+
+  /* Itens do menu alinhados à esquerda, como lista */
+  .sidebar nav a, .sidebar nav a:nth-child(2) { justify-content: flex-start; }
+  .nav-more > summary { min-height: 48px; padding: 0 13px; }
+
+  /* Cabeçalho dos diálogos: título à esquerda, "Fechar" compacto à direita (antes virava um botão de largura total no topo) */
+  .confirm-dialog > .section-heading { align-items: flex-start; flex-direction: row; flex-wrap: nowrap; gap: 12px; }
+  .confirm-dialog > .section-heading > div { flex: 1; min-width: 0; }
+  .confirm-dialog > .section-heading > button { min-height: 40px; padding: 8px 12px; width: auto; }
+
+  /* Revelação ao rolar: no celular os cards ficavam deslocados, menores e desfocados até chegar ao meio da tela.
+     Aqui entram uma única vez, só com opacidade. */
+  :is(.achievement-grid, .shop-grid, .book-grid, .challenge-template-grid, .cavern-system-grid) > * {
+    animation: fade-in .3s ease backwards;
+  }
+  /* Desfoque animado em muitos blocos pesa no celular */
+  @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  /* Dias ativos do Perfil: os 7 dias cabem numa linha (o sábado caía sozinho na linha de baixo) */
+  .profile-section .day-picker { display: grid; flex-wrap: nowrap; gap: 4px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .profile-section .day-picker button { aspect-ratio: 1; height: auto; justify-self: center; max-width: 44px; min-height: 0; width: 100%; }
+
+  /* Salvar/Descartar lado a lado com a mesma largura */
+  .button-row > button { flex: 1 1 auto; white-space: nowrap; }
+
+  /* Foco: campo e botão ocupam a largura do cartão */
+  .focus-start input { min-height: 44px; width: 100%; }
+  .focus-start > button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-details > summary::after, .nav-more > summary::after { transition: none; }
+}

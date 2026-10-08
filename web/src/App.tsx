@@ -14,6 +14,7 @@ import { useLocalRevision } from "./lib/use-local-revision";
 import { evaluateAchievements } from "./features/achievements/services/achievement.service";
 import "./App.css";
 import "./theme-overrides.css";
+import "./features/challenges/challenges.css";
 import "./reader.css";
 import "./mobile-compact.css";
 

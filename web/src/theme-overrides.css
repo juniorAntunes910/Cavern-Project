@@ -30,7 +30,7 @@
   .today-heading{gap:10px}.today-heading h2{font-size:1.3rem;margin:2px 0 4px}
   .today-list{gap:7px;margin-top:12px}.today-item{min-height:56px}
   .fire-journey{gap:10px;margin-bottom:16px;min-height:0;padding:15px}
-  .fire-journey .camp-scene{height:100px}.fire-count{font-size:1.55rem;padding:10px}
+  .fire-journey .camp-scene{height:auto}.fire-journey .streak-scene{max-height:130px;width:auto}.fire-count{font-size:1.55rem;padding:10px}
   .log-date{gap:6px;margin:0 0 14px;padding:10px 12px}
   .habit-create-form>div:first-child h2{font-size:1.3rem;margin:2px 0 4px}
   .habit-create-form>div:first-child p:last-child{font-size:.86rem}
