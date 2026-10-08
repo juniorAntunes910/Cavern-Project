@@ -1,4 +1,8 @@
+import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { readDatabaseValue, setDatabaseValue } from './app-db'
+import { REMINDER_DAYS, REMINDER_ID_BASE, planReminders } from './habit-reminders'
+import { getLocalHabitLogs, getLocalHabits, today } from './local-store'
 import { registerAppServiceWorker } from './pwa'
 
 const enabledKey = 'cavern.settings.notifications.enabled'
@@ -21,14 +25,63 @@ export type NotificationSettings = {
   permission: NotificationPermission | 'unsupported'
 }
 
+/** No APK o WebView do Android não tem a API Notification do navegador: os lembretes usam o agendador nativo. */
+const isNative = () => Capacitor.isNativePlatform()
+
+async function nativePermission(): Promise<NotificationPermission | 'unsupported'> {
+  try {
+    const { display } = await LocalNotifications.checkPermissions()
+    return display === 'granted' ? 'granted' : display === 'denied' ? 'denied' : 'default'
+  } catch { return 'unsupported' }
+}
+
 export async function getNotificationSettings(): Promise<NotificationSettings> {
   const enabled = await readDatabaseValue<boolean>(enabledKey) ?? false
   const hour = await readDatabaseValue<number>(hourKey) ?? defaultHour
-  const permission = 'Notification' in window ? Notification.permission : 'unsupported'
+  const permission = isNative() ? await nativePermission() : 'Notification' in window ? Notification.permission : 'unsupported'
   return { enabled, hour, permission }
 }
 
+/** Hábitos ativos ainda sem conclusão hoje (a mesma regra do service worker). */
+function pendingHabitNames() {
+  const date = today()
+  const done = new Set(getLocalHabitLogs().filter(log => log.date === date && log.status === 'completed').map(log => log.habit_id))
+  return getLocalHabits().filter(habit => habit.active && !done.has(habit.id)).map(habit => habit.name)
+}
+
+let scheduling: Promise<void> = Promise.resolve()
+/**
+ * Reagenda a janela de lembretes nativos (7 dias). Roda ao ativar, ao mudar o horário, ao abrir o app e quando os dados mudam,
+ * para que concluir o último hábito do dia cancele o lembrete de hoje. Chamadas seguidas são enfileiradas.
+ */
+export function syncNativeReminders() {
+  if (!isNative()) return Promise.resolve()
+  scheduling = scheduling.then(async () => {
+    try {
+      const ids = Array.from({ length: REMINDER_DAYS }, (_, offset) => ({ id: REMINDER_ID_BASE + offset }))
+      await LocalNotifications.cancel({ notifications: ids })
+      const enabled = await readDatabaseValue<boolean>(enabledKey) ?? false
+      if (!enabled || (await nativePermission()) !== 'granted') return
+      const hour = await readDatabaseValue<number>(hourKey) ?? defaultHour
+      const planned = planReminders({ now: new Date(), hour, pendingNames: pendingHabitNames() })
+      if (!planned.length) return
+      await LocalNotifications.schedule({ notifications: planned.map(item => ({ id: item.id, title: item.title, body: item.body, schedule: { at: item.at, allowWhileIdle: true }, extra: { url: '/habits' } })) })
+    } catch (error) {
+      console.error('Não foi possível agendar os lembretes.', error)
+    }
+  })
+  return scheduling
+}
+
 export async function enableHabitNotifications(hour = defaultHour) {
+  if (isNative()) {
+    const { display } = await LocalNotifications.requestPermissions()
+    if (display !== 'granted') return getNotificationSettings()
+    await setDatabaseValue(enabledKey, true)
+    await setDatabaseValue(hourKey, hour)
+    await syncNativeReminders()
+    return getNotificationSettings()
+  }
   if (!('Notification' in window)) return getNotificationSettings()
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return getNotificationSettings()
@@ -49,6 +102,10 @@ export async function enableHabitNotifications(hour = defaultHour) {
 
 export async function disableHabitNotifications() {
   await setDatabaseValue(enabledKey, false)
+  if (isNative()) {
+    await syncNativeReminders()
+    return getNotificationSettings()
+  }
   const registration = await navigator.serviceWorker?.getRegistration() as ServiceWorkerRegistrationWithPeriodicSync | undefined
   if (registration?.periodicSync) {
     try {
@@ -62,7 +119,8 @@ export async function disableHabitNotifications() {
 
 export async function updateNotificationHour(hour: number) {
   await setDatabaseValue(hourKey, hour)
-  await requestHabitReminderCheck()
+  if (isNative()) await syncNativeReminders()
+  else await requestHabitReminderCheck()
   return getNotificationSettings()
 }
 
@@ -74,6 +132,19 @@ async function requestHabitReminderCheck(existingRegistration?: ServiceWorkerReg
 }
 
 export function startHabitReminderChecks() {
+  if (isNative()) {
+    let timer = 0
+    const resync = () => { window.clearTimeout(timer); timer = window.setTimeout(() => void syncNativeReminders(), 800) }
+    const onVisible = () => { if (document.visibilityState === 'visible') resync() }
+    resync()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('cavern:data-changed', resync)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('cavern:data-changed', resync)
+    }
+  }
   const check = () => {
     if (document.visibilityState === 'visible') void requestHabitReminderCheck()
   }

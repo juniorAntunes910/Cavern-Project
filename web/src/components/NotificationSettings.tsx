@@ -1,5 +1,6 @@
 import { Select } from './Select'
 import { useEffect, useState } from 'react'
+import { isAppInstalled } from '../lib/pwa'
 import { disableHabitNotifications, enableHabitNotifications, getNotificationSettings, updateNotificationHour, type NotificationSettings as Settings } from '../lib/notifications'
 
 const hours = [8, 12, 18, 20, 21]
@@ -29,6 +30,10 @@ export function NotificationSettings() {
 
   if (!settings) return <div className="app-setting-row"><span>Carregando preferências de notificação...</span></div>
   const unsupported = settings.permission === 'unsupported'
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+  const unsupportedHint = isIos && !isAppInstalled()
+    ? 'No iPhone os lembretes só funcionam com o Cavern instalado: toque em Compartilhar › Adicionar à Tela de Início e abra o app por lá.'
+    : 'Este navegador não oferece notificações. No Android, use o aplicativo do Cavern ou o Chrome.'
 
   return <div className="app-setting-row">
     <div><strong>Lembrete de hábitos</strong><span>Uma notificação por dia quando ainda houver hábitos pendentes.</span></div>
@@ -42,6 +47,7 @@ export function NotificationSettings() {
         {unsupported ? 'Indisponível' : busy ? 'Aguarde...' : settings.enabled ? 'Desativar' : 'Ativar notificações'}
       </button>
     </div>
+    {unsupported && <p className="setting-message">{unsupportedHint}</p>}
     {message && <p className="setting-message" role="status">{message}</p>}
   </div>
 }
