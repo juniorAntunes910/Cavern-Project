@@ -10,7 +10,8 @@ const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('c
 await page.goto(pathToFileURL(reel).href)
 await page.evaluate(() => window.ready)
 await page.evaluate(() => document.fonts.ready)
-const times = mode === 'stills' ? [0.55, 1.15, 1.75, 2.6, 3.4, 4.25, 5.2, 6.5, 7.5, 8.7, 9.6, 10.5, 11.6, 12.4, 13.5, 14.3, 15.3, 16.5, 17.5, 18.6, 19.2, 19.85, 4.05, 14.05].map(x => x * 60) : Array.from({ length: +to - +from }, (_, i) => +from + i)
+const stillTimes = process.env.STILLS ? process.env.STILLS.split(',').map(Number) : [0.55, 1.15, 1.75, 2.6, 3.4, 4.25, 5.2, 6.5, 7.5, 8.7, 9.6, 10.5, 11.6, 12.4, 13.5, 14.3, 15.3, 16.5, 17.5, 18.6, 19.2, 19.85, 4.05, 14.05]
+const times = mode === 'stills' ? stillTimes.map(x => x * 60) : Array.from({ length: +to - +from }, (_, i) => +from + i)
 const t0 = Date.now()
 for (const [k, f] of times.entries()) {
   await page.evaluate(t => window.render(t), f / 60)

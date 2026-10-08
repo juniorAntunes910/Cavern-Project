@@ -1,0 +1,104 @@
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <radialGradient id="fg" cx="50%" cy="80%" r="60%"><stop offset="0" stop-color="#ffd27a"/><stop offset=".55" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/></radialGradient>
+      <g id="flame-shape">
+        <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="url(#fg)"/>
+        <path class="core" d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#fff1b0"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- 1 · abertura -->
+  <section class="scene" id="s-open">
+    <svg id="fire-big" class="abs" viewBox="-60 -110 120 120" width="440" height="440" style="left:740px;top:90px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="o-line1" class="abs mega" style="left:0;right:0;top:540px;text-align:center;font-size:190px"></div>
+    <div id="o-line2" class="abs mega" style="left:0;right:0;top:720px;text-align:center;font-size:190px;color:#9c7de8"></div>
+    <div id="o-tag" class="abs hud" style="left:0;right:0;top:960px;text-align:center;font-size:24px">Cavern · now in your hand</div>
+  </section>
+
+  <!-- 2 · um toque -->
+  <section class="scene" id="s-habit">
+    <div id="h-word" class="abs mega outline" style="left:-80px;top:300px;font-size:560px">DONE</div>
+    <div id="h-k" class="abs kicker" style="left:140px;top:190px">Daily ritual</div>
+    <div id="h-t1" class="abs mega" style="left:140px;top:250px;font-size:230px">ONE</div>
+    <div id="h-t2" class="abs mega" style="left:140px;top:450px;font-size:230px;color:#9c7de8">TAP.</div>
+    <div id="h-count" class="bigcount" style="left:140px;top:760px">0/4<small>habits done today</small></div>
+    <div id="h-streak" class="stat" style="left:700px;top:880px"><b id="h-streak-n">60</b>day streak</div>
+    <div class="mphone" id="p-home"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller"><img src="shots/mm-home.png"><div class="ov" id="home-ov"></div></div></div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 3 · menu -->
+  <section class="scene" id="s-menu">
+    <div id="m-word" class="abs mega outline" style="left:0;top:330px;font-size:520px;text-align:right;right:-60px">GO</div>
+    <div id="m-k" class="abs kicker" style="left:1090px;top:230px">Navigate</div>
+    <div id="m-t1" class="abs mega" style="left:1090px;top:290px;font-size:200px">EVERY</div>
+    <div id="m-t2" class="abs mega" style="left:1090px;top:470px;font-size:200px;color:#9c7de8">AREA.</div>
+    <div id="m-chips"></div>
+    <div class="mphone" id="p-menu"><div class="notch"></div><div class="glass"><div class="screen">
+      <div class="scroller"><img src="shots/mm-home.png"></div>
+      <div id="menu-dim" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+      <div id="menu-slide" class="scroller" style="width:352px"><img src="shots/mm-menu.png"><div class="ov" id="menu-ov"></div></div>
+    </div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 4 · loja -->
+  <section class="scene" id="s-shop">
+    <div id="s-word" class="abs mega outline" style="left:-60px;top:360px;font-size:500px">OWN</div>
+    <div id="s-k" class="abs kicker" style="left:140px;top:190px">Customize</div>
+    <div id="s-t1" class="abs mega" style="left:140px;top:250px;font-size:200px">MAKE IT</div>
+    <div id="s-t2" class="abs mega" style="left:140px;top:430px;font-size:200px;color:#9c7de8">YOURS.</div>
+    <div id="s-count" class="bigcount" style="left:140px;top:750px"><span id="s-n">2650</span><small>embers · fogo azul −500</small></div>
+    <div class="mphone" id="p-shop"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller" id="shop-scroller"><img src="shots/mm-shop-full.png"><div class="ov" id="shop-ov"></div></div></div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 5 · IA -->
+  <section class="scene" id="s-chat">
+    <div id="c-word" class="abs mega outline" style="left:0;right:-40px;text-align:right;top:340px;font-size:520px">ASK</div>
+    <div id="c-k" class="abs kicker" style="left:1060px;top:230px">AI advisor</div>
+    <div id="c-t1" class="abs mega" style="left:1060px;top:290px;font-size:150px">ASK</div>
+    <div id="c-t2" class="abs mega" style="left:1060px;top:440px;font-size:140px;color:#9c7de8">ANYTHING.</div>
+    <div class="stat" id="c-st1" style="left:1060px;top:660px"><b>60</b>day streak</div>
+    <div class="stat" id="c-st2" style="left:1060px;top:750px"><b>+15</b>kg on bench</div>
+    <div class="stat" id="c-st3" style="left:1060px;top:840px"><b>⚡</b>focus = energy</div>
+    <div class="mphone" id="p-chat"><div class="notch"></div><div class="glass"><div id="chat-ui">
+      <div id="chat-top"><div class="burger"><i></i><i></i><i></i></div><b>CAVERN</b><span>🔥 60</span></div>
+      <div id="chat-card">
+        <div id="chat-status"><i></i>IA na nuvem (Gemini) · 4 áreas liberadas</div>
+        <div id="chat-list">
+          <div class="cb ai" id="cb0"><small>Orientador</small>Olá! Posso conversar sobre sua rotina, suas metas e como você está se sentindo, usando somente as categorias que escolher.</div>
+          <div class="cb me" id="cb1"><small>Você</small>Como mantenho minha sequência nesta semana?</div>
+          <div class="cb ai" id="chat-typing"><i></i><i></i><i></i></div>
+          <div class="cb ai" id="cb2"><small>Orientador</small><span id="cb2-text"></span></div>
+        </div>
+        <div id="chat-input">Escreva o que você gostaria de conversar…</div>
+        <div id="chat-send">Enviar</div>
+      </div>
+      <div id="chat-bottom"></div>
+    </div></div><div class="sheen"></div></div>
+  </section>
+
+  <!-- 6 · todas as telas -->
+  <section class="scene" id="s-fan">
+    <div id="f-word" class="abs mega" style="left:0;right:0;top:34px;text-align:center;font-size:96px;letter-spacing:.06em"></div>
+    <div id="f-phones"></div>
+  </section>
+
+  <!-- 7 · encerramento -->
+  <section class="scene" id="s-out">
+    <svg id="out-fire" class="abs" viewBox="-60 -110 120 120" width="300" height="300" style="left:810px;top:150px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="out-logo" class="abs mega" style="left:0;right:0;top:470px;text-align:center;font-size:170px;letter-spacing:.2em;padding-left:.2em">CAVERN</div>
+    <div id="out-tag" class="abs" style="left:0;right:0;top:680px;text-align:center;font-size:44px;font-weight:600;color:#e7e2f5">Light it every day. Anywhere.</div>
+    <div id="out-chips" class="abs" style="left:0;right:0;top:790px;text-align:center"></div>
+    <div id="out-credit" class="abs hud" style="left:0;right:0;top:900px;text-align:center">Motion design &amp; code · Mobile reel 2026</div>
+  </section>
+
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+  <div id="letterbox"></div>
+  <div id="brandmark">CAVERN</div>
+  <div id="timecode">00:00:00</div>
+  <div id="progressbar"><i></i></div>
+</div>
