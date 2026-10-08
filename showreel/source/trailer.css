@@ -1,0 +1,12 @@
+/* ===== Trailer de lançamento ===== */
+.tline { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font-weight: 800; font-size: 96px; letter-spacing: -.02em; line-height: 1.05; opacity: 0; }
+.wline { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font-weight: 900; font-size: 150px; letter-spacing: -.03em; opacity: 0; text-shadow: 0 10px 60px rgba(0,0,0,.8); }
+
+.cut { position: absolute; inset: 0; visibility: hidden; transform-style: preserve-3d; }
+.cut .ck { position: absolute; font-family: var(--hud); font-weight: 700; letter-spacing: .5em; text-transform: uppercase; color: var(--purple); font-size: 24px; }
+.cut .cw { position: absolute; font-weight: 900; letter-spacing: -.04em; line-height: .9; white-space: nowrap; color: #f1f2ee; }
+.cut .cw b { color: #9c7de8; font-weight: 900; }
+.cut .cs { position: absolute; font-size: 34px; font-weight: 600; color: #d8d3e6; }
+.cut .cn { position: absolute; font-family: var(--hud); font-weight: 700; letter-spacing: .3em; color: rgba(241,242,238,.35); font-size: 22px; }
+
+#end-cta-chip { display: inline-block; font: 800 46px "Segoe UI", sans-serif; letter-spacing: .02em; padding: 18px 46px; border-radius: 999px; color: #fff; background: linear-gradient(100deg, #ff8a3d, #9c7de8); box-shadow: 0 20px 70px rgba(156,125,232,.45), 0 0 0 1px rgba(255,255,255,.15) inset; }

@@ -26,3 +26,14 @@ Renderização (a partir de `web/`, copiando `render-frames.mjs` para `web/scrip
     ffmpeg -framerate 60 -i frames/f%04d.jpg -i soundtrack-mobile.wav -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -c:a aac -b:a 256k -movflags +faststart -shortest cavern-mobile-reel.mp4
 
 Para pré-visualizar quadros avulsos: `STILLS=2.4,4.4,9.9 node scripts/render-frames.mjs reel-mobile.html out stills`.
+
+## Trailer de lançamento (30 s, PT-BR)
+
+Estrutura de trailer: tensão (0–6 s) → ignição do logo (6 s) → oito cortes de funções a 120 BPM (7,5–19,5 s) → respiro com a parede de telas (19,5–23 s) → clímax "Acenda todos os dias" (23–27 s) → cartela "Disponível agora" (27–30 s).
+
+- `trailer.html` — gerado por `python build-trailer.py` a partir de `reel.html` (motor), `mobile.css` (telefones), `trailer.css`, `trailer.body.html` e `trailer.scene.js`. Os textos e a chamada final ("Disponível agora", "Android · Web · Desktop") ficam em `trailer.body.html`.
+- `audio-trailer.mjs` — trilha sintetizada: `node audio-trailer.mjs soundtrack-trailer.wav`.
+- Usa as mesmas capturas `shots/mm-*.png` do reel mobile.
+
+    node scripts/render-frames.mjs ../showreel/source/trailer.html frames all 0 1800
+    ffmpeg -framerate 60 -i frames/f%04d.jpg -i soundtrack-trailer.wav -c:v libx264 -preset slow -crf 21 -pix_fmt yuv420p -c:a aac -b:a 256k -movflags +faststart -shortest cavern-trailer.mp4

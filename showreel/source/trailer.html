@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cavern · Trailer de lançamento</title>
+<style>
+  :root {
+    --bg: #07080a; --surface: #171a18; --surface2: #111412; --line: #292e2a; --text: #f1f2ee; --muted: #aeb4ac;
+    --purple: #9c7de8; --purpleSoft: #302548; --green: #9dbe91; --ember: #ff8a3d; --gold: #f2c45a;
+    --display: "Segoe UI", system-ui, sans-serif; --hud: "Bahnschrift", "Segoe UI", sans-serif; --mono: Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--display); }
+  #stage { position: absolute; inset: 0; overflow: hidden; perspective: 1800px; background: radial-gradient(120% 90% at 50% 110%, #1a1210 0%, #0b0b0e 45%, #050507 100%); }
+  canvas { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; }
+  .scene { position: absolute; inset: 0; transform-style: preserve-3d; visibility: hidden; }
+  .abs { position: absolute; }
+  .center { left: 50%; top: 50%; }
+  .hud { font-family: var(--hud); font-weight: 600; letter-spacing: .32em; text-transform: uppercase; font-size: 18px; color: var(--muted); }
+  .kicker { font-family: var(--hud); font-weight: 700; letter-spacing: .5em; text-transform: uppercase; color: var(--purple); font-size: 22px; }
+  .mega { font-weight: 900; letter-spacing: -.04em; line-height: .85; white-space: nowrap; }
+  .outline { color: transparent; -webkit-text-stroke: 2px rgba(241, 242, 238, .22); }
+  .mask { overflow: hidden; display: inline-block; vertical-align: top; }
+  .mask > span { display: inline-block; will-change: transform; }
+
+  /* janelas e telefones com telas reais */
+  .window { position: absolute; border-radius: 22px; overflow: hidden; background: #0e100f; box-shadow: 0 60px 140px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07); transform-style: preserve-3d; }
+  .window .bar { height: 44px; background: #15171a; display: flex; align-items: center; gap: 9px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .window .bar i { width: 12px; height: 12px; border-radius: 50%; background: #3a3d42; display: block; }
+  .window .bar i:nth-child(1) { background: #ff5f57; } .window .bar i:nth-child(2) { background: #febc2e; } .window .bar i:nth-child(3) { background: #28c840; }
+  .window .bar b { margin-left: 18px; font: 600 15px var(--hud); color: #7b8088; letter-spacing: .04em; background: #0d0f11; padding: 6px 16px; border-radius: 8px; }
+  .window .view { position: relative; overflow: hidden; }
+  .window .view img { display: block; width: 100%; }
+  .phone { position: absolute; width: 380px; height: 822px; border-radius: 58px; background: #050506; padding: 14px; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px #2a2c31, inset 0 0 0 2px #111; }
+  .phone .glass { position: relative; width: 100%; height: 100%; border-radius: 46px; overflow: hidden; background: #0d0f0e; }
+  .phone .glass img { width: 100%; display: block; }
+  .phone .notch { position: absolute; top: 12px; left: 50%; width: 110px; height: 32px; margin-left: -55px; border-radius: 20px; background: #000; z-index: 2; }
+  .sheen { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 48%, transparent 60%); mix-blend-mode: screen; pointer-events: none; }
+
+  /* chat */
+  .bubble { position: absolute; border-radius: 26px; padding: 26px 32px; font-size: 30px; line-height: 1.36; max-width: 980px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .bubble small { display: block; font: 700 17px var(--hud); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; opacity: .75; }
+  .bubble.ai { background: #121513; border: 1px solid #2a302c; }
+  .bubble.me { background: var(--purpleSoft); border: 1px solid #4b3b72; }
+  .typing i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); margin-right: 10px; }
+
+  /* medalhas, chips */
+  .chip { position: absolute; font: 700 22px var(--hud); letter-spacing: .2em; padding: 12px 24px; border-radius: 999px; border: 1px solid rgba(156,125,232,.5); background: rgba(48,37,72,.55); color: #d9cdfb; text-transform: uppercase; white-space: nowrap; }
+  .tile { position: absolute; width: 640px; height: 400px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); backface-visibility: hidden; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+  .flashword { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-weight: 900; font-size: 210px; letter-spacing: -.04em; transform: translateY(-50%); mix-blend-mode: normal; text-shadow: 0 0 60px rgba(156,125,232,.55); }
+  #flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, #ffd9a8, #ff9a4d 55%, #7a3b1c); opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+  #letterbox { position: absolute; inset: 0; pointer-events: none; }
+  #letterbox::before, #letterbox::after { content: ''; position: absolute; left: 0; right: 0; height: var(--lb, 0px); background: #000; }
+  #letterbox::before { top: 0; } #letterbox::after { bottom: 0; }
+  #timecode { position: absolute; right: 54px; bottom: 40px; font: 600 16px var(--mono); color: rgba(241,242,238,.45); letter-spacing: .12em; }
+  #brandmark { position: absolute; left: 54px; bottom: 40px; font: 700 16px var(--hud); letter-spacing: .5em; color: rgba(241,242,238,.45); }
+  #progressbar { position: absolute; left: 54px; right: 54px; bottom: 26px; height: 2px; background: rgba(255,255,255,.08); }
+  #progressbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ember), var(--purple)); }
+
+/* ===== Cavern mobile reel: telefones, chat e elementos novos ===== */
+.mphone { position: absolute; width: 380px; height: 790px; border-radius: 58px; background: #050506; padding: 14px; box-shadow: 0 50px 120px rgba(0,0,0,.7), 0 0 0 2px #2a2c31, inset 0 0 0 2px #111; transform-origin: 50% 50%; will-change: transform; }
+.mphone .notch { position: absolute; top: 9px; left: 50%; width: 96px; height: 20px; margin-left: -48px; border-radius: 20px; background: #000; z-index: 6; }
+.mphone .glass { position: relative; width: 352px; height: 762px; border-radius: 46px; overflow: hidden; background: #0d0f0e; }
+.mphone .sheen { transform: translateX(-130%); position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.2) 48%, transparent 60%); mix-blend-mode: screen; pointer-events: none; z-index: 7; overflow: hidden; }
+.screen { position: absolute; inset: 0; overflow: hidden; }
+.scroller { position: absolute; left: 0; top: 0; width: 352px; will-change: transform; }
+.scroller > img { display: block; width: 352px; height: auto; }
+.ov { position: absolute; left: 0; top: 0; width: 1170px; height: 100%; transform-origin: 0 0; transform: scale(.300855); pointer-events: none; }
+.ov > * { position: absolute; }
+.rip { width: 230px; height: 230px; margin: -115px 0 0 -115px; border-radius: 50%; border: 9px solid #c9b6ff; box-shadow: 0 0 60px rgba(156,125,232,.8); opacity: 0; }
+.done-btn { display: flex; align-items: center; justify-content: center; border-radius: 22px; border: 4px solid #9c7de8; background: #121514; color: #cdbdf8; font: 700 46px "Segoe UI", sans-serif; opacity: 0; }
+.done-chk { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #9c7de8; color: #fff; font: 800 44px "Segoe UI", sans-serif; opacity: 0; }
+.equipped { display: flex; align-items: center; justify-content: center; border-radius: 22px; background: #4a3a80; color: #b9b1cf; font: 700 48px "Segoe UI", sans-serif; opacity: 0; }
+.menu-hl { border-radius: 22px; background: rgba(156,125,232,.32); border: 4px solid #9c7de8; opacity: 0; }
+
+/* chat feito em HTML dentro do telefone (352×762) */
+#chat-ui { position: absolute; inset: 0; display: flex; flex-direction: column; font-family: "Segoe UI", system-ui, sans-serif; color: #f1f2ee; background: #0d0f0e; }
+#chat-top { height: 52px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 0; border-bottom: 1px solid #1d211e; }
+#chat-top .burger { width: 32px; height: 32px; border-radius: 9px; background: #7c5ad4; display: grid; place-content: center; gap: 3px; }
+#chat-top .burger i { display: block; width: 14px; height: 2px; border-radius: 2px; background: #fff; }
+#chat-top b { font: 800 11px Bahnschrift, sans-serif; letter-spacing: .32em; }
+#chat-top span { font: 700 14px "Segoe UI", sans-serif; }
+#chat-card { flex: 1; margin: 12px 10px 0; border: 1px solid #292e2a; border-radius: 16px; background: #171a18; display: flex; flex-direction: column; padding: 12px; min-height: 0; }
+#chat-status { font-size: 10.5px; color: #aeb4ac; margin-bottom: 8px; display: flex; gap: 7px; align-items: center; }
+#chat-status i { width: 8px; height: 8px; border-radius: 50%; background: #9c7de8; display: block; }
+#chat-list { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; border: 1px solid #292e2a; border-radius: 13px; padding: 8px; }
+.cb { border-radius: 12px; padding: 9px 11px; font-size: 12.6px; line-height: 1.38; }
+.cb small { display: block; font: 700 9.5px Bahnschrift, sans-serif; letter-spacing: .1em; text-transform: uppercase; opacity: .75; margin-bottom: 4px; }
+.cb.ai { background: #111412; border: 1px solid #222823; }
+.cb.me { background: #35295a; border: 1px solid #4b3b72; }
+#chat-typing i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #aeb4ac; margin-right: 5px; }
+#chat-input { flex: none; margin-top: 10px; border: 1px solid #3d3567; border-radius: 12px; background: #111412; color: #7d847b; font-size: 12px; padding: 10px 11px; min-height: 42px; }
+#chat-send { flex: none; margin-top: 8px; border-radius: 10px; background: #4a3a80; color: #aeb4ac; font-weight: 700; font-size: 13px; text-align: center; padding: 10px; }
+#chat-bottom { flex: none; height: 18px; }
+
+.stat { position: absolute; font: 700 22px Bahnschrift, sans-serif; letter-spacing: .16em; text-transform: uppercase; padding: 14px 26px; border-radius: 16px; border: 1px solid rgba(156,125,232,.5); background: rgba(24,18,38,.82); color: #e0d6fc; white-space: nowrap; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.stat b { color: #ffd27a; font-size: 30px; margin-right: 10px; letter-spacing: 0; }
+.navchip { position: absolute; font: 700 26px Bahnschrift, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 12px 26px; border-radius: 999px; border: 1px solid rgba(156,125,232,.5); background: rgba(48,37,72,.55); color: #d9cdfb; white-space: nowrap; }
+.bigcount { position: absolute; font: 900 170px "Segoe UI", sans-serif; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.bigcount small { display: block; font: 700 22px Bahnschrift, sans-serif; letter-spacing: .4em; color: var(--muted); margin-top: 6px; text-transform: uppercase; }
+
+/* ===== Trailer de lançamento ===== */
+.tline { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font-weight: 800; font-size: 96px; letter-spacing: -.02em; line-height: 1.05; opacity: 0; }
+.wline { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font-weight: 900; font-size: 150px; letter-spacing: -.03em; opacity: 0; text-shadow: 0 10px 60px rgba(0,0,0,.8); }
+
+.cut { position: absolute; inset: 0; visibility: hidden; transform-style: preserve-3d; }
+.cut .ck { position: absolute; font-family: var(--hud); font-weight: 700; letter-spacing: .5em; text-transform: uppercase; color: var(--purple); font-size: 24px; }
+.cut .cw { position: absolute; font-weight: 900; letter-spacing: -.04em; line-height: .9; white-space: nowrap; color: #f1f2ee; }
+.cut .cw b { color: #9c7de8; font-weight: 900; }
+.cut .cs { position: absolute; font-size: 34px; font-weight: 600; color: #d8d3e6; }
+.cut .cn { position: absolute; font-family: var(--hud); font-weight: 700; letter-spacing: .3em; color: rgba(241,242,238,.35); font-size: 22px; }
+
+#end-cta-chip { display: inline-block; font: 800 46px "Segoe UI", sans-serif; letter-spacing: .02em; padding: 18px 46px; border-radius: 999px; color: #fff; background: linear-gradient(100deg, #ff8a3d, #9c7de8); box-shadow: 0 20px 70px rgba(156,125,232,.45), 0 0 0 1px rgba(255,255,255,.15) inset; }
+
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <radialGradient id="fg" cx="50%" cy="80%" r="60%"><stop offset="0" stop-color="#ffd27a"/><stop offset=".55" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ff5a2a"/></radialGradient>
+      <g id="flame-shape">
+        <path d="M0 0C-39-4-32-40-15-55C-15-35-6-32-7-47C-8-65 7-83 12-94C14-61 46-43 28-13C22-2 11 3 0 0Z" fill="url(#fg)"/>
+        <path class="core" d="M0-2C-15-14-9-30 3-48C3-33 20-26 14-12C12-5 5 0 0-2Z" fill="#fff1b0"/>
+      </g>
+    </defs>
+  </svg>
+
+  <!-- 1 · tensão (0–6 s) -->
+  <section class="scene" id="t-intro">
+    <div class="tline" id="tl0">Todo dia começa igual.</div>
+    <div class="tline" id="tl1">Metas demais.</div>
+    <div class="tline" id="tl2">Tempo de menos.</div>
+    <div class="tline" id="tl3">Nenhum ritmo.</div>
+    <div class="tline" id="tl4">E se cada passo<br><span style="color:#ffb46a">acendesse algo?</span></div>
+    <svg id="ember" class="abs" viewBox="-60 -110 120 120" width="200" height="200" style="left:860px;top:690px;overflow:visible"><use href="#flame-shape"/></svg>
+  </section>
+
+  <!-- 2 · ignição + logo (6–7,5 s) -->
+  <section class="scene" id="t-logo">
+    <svg id="logo-fire" class="abs" viewBox="-60 -110 120 120" width="420" height="420" style="left:750px;top:110px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="logo-word" class="abs mega" style="left:0;right:0;top:600px;text-align:center;font-size:210px;letter-spacing:.2em;padding-left:.2em"></div>
+  </section>
+
+  <!-- 3 · montagem das funções (7,5–19,5 s): oito cortes gerados em trailer.scene.js -->
+  <div id="cuts"></div>
+
+  <!-- 4 · respiro (19,5–23 s) -->
+  <section class="scene" id="t-wall">
+    <div id="tw-wall" class="abs" style="left:960px;top:540px;transform-style:preserve-3d"></div>
+    <div id="tw-shade" class="abs" style="inset:0;background:radial-gradient(60% 55% at 50% 50%,rgba(5,5,8,.82),rgba(5,5,8,.35) 70%,transparent)"></div>
+    <div class="wline" id="wl0">UM SISTEMA.</div>
+    <div class="wline" id="wl1">UMA FOGUEIRA.</div>
+    <div class="wline" id="wl2" style="color:#b79cff">A SUA JORNADA.</div>
+  </section>
+
+  <!-- 5 · clímax (23–27 s) -->
+  <section class="scene" id="t-peak">
+    <svg id="peak-fire" class="abs" viewBox="-60 -110 120 120" width="260" height="260" style="left:560px;top:250px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="peak-n" class="abs mega" style="left:850px;top:250px;font-size:300px;font-variant-numeric:tabular-nums">1</div>
+    <div id="peak-label" class="abs hud" style="left:860px;top:540px;font-size:30px">dias seguidos</div>
+    <div id="peak-tag1" class="abs mega" style="left:0;right:0;top:660px;text-align:center;font-size:120px">ACENDA</div>
+    <div id="peak-tag2" class="abs mega" style="left:0;right:0;top:780px;text-align:center;font-size:120px;color:#9c7de8">TODOS OS DIAS.</div>
+  </section>
+
+  <!-- 6 · cartela final (27–30 s) -->
+  <section class="scene" id="t-end">
+    <svg id="end-fire" class="abs" viewBox="-60 -110 120 120" width="280" height="280" style="left:820px;top:120px;overflow:visible"><use href="#flame-shape"/></svg>
+    <div id="end-logo" class="abs mega" style="left:0;right:0;top:430px;text-align:center;font-size:180px;letter-spacing:.2em;padding-left:.2em">CAVERN</div>
+    <div id="end-cta" class="abs" style="left:0;right:0;top:660px;text-align:center"><span id="end-cta-chip">Disponível agora</span></div>
+    <div id="end-platforms" class="abs hud" style="left:0;right:0;top:790px;text-align:center;font-size:26px">Android · Web · Desktop</div>
+    <div id="end-small" class="abs hud" style="left:0;right:0;top:900px;text-align:center;font-size:18px;opacity:.6">Seus hábitos, seu ritmo, sua fogueira.</div>
+  </section>
+
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="flash"></div>
+  <div id="letterbox"></div>
+</div>
+
+<script>
+// ===================== utilitários =====================
+const DURATION = 30, FPS = 60, BEAT = 0.5
+const $ = id => document.getElementById(id)
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const lerp = (a, b, t) => a + (b - a) * t
+const prog = (t, a, b) => clamp((t - a) / (b - a))
+const E = {
+  outExpo: x => x === 1 ? 1 : 1 - Math.pow(2, -10 * x),
+  inExpo: x => x === 0 ? 0 : Math.pow(2, 10 * x - 10),
+  inOutExpo: x => x === 0 ? 0 : x === 1 ? 1 : x < .5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2,
+  outCubic: x => 1 - Math.pow(1 - x, 3),
+  inOutCubic: x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
+  inCubic: x => x * x * x,
+  outBack: x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2) },
+  outElastic: x => x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - .75) * (2 * Math.PI / 3)) + 1,
+  outQuint: x => 1 - Math.pow(1 - x, 5),
+}
+const tw = (t, a, b, ease = E.outExpo) => ease(prog(t, a, b))
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let r = Math.imul(seed ^ seed >>> 15, 1 | seed); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296 } }
+const noise1 = (x, s = 0) => Math.sin(x * 1.7 + s) * .5 + Math.sin(x * 3.1 + s * 2.3) * .3 + Math.sin(x * 7.3 + s * .7) * .2
+function set(el, o) { const s = (typeof el === 'string' ? $(el) : el).style; for (const k in o) s[k] = o[k] }
+function show(el, on) { (typeof el === 'string' ? $(el) : el).style.visibility = on ? 'visible' : 'hidden' }
+// pulso decaindo a cada batida (para "punch" no ritmo)
+const beatPulse = (t, from = 0, to = 99) => t < from || t > to ? 0 : Math.exp(-((t - from) % BEAT) * 9)
+// momentos de impacto (flash, shake, aberração cromática)
+const HITS = [6.0, 7.5, 9.0, 10.5, 12.0, 13.5, 15.0, 16.5, 18.0, 19.5, 23.0, 27.0]
+const hitAmount = t => HITS.reduce((m, h) => t >= h ? Math.max(m, Math.exp(-(t - h) * 7)) : m, 0)
+
+
+// ===================== partículas e pós-processamento =====================
+const bg = $('bg').getContext('2d'), fx = $('fx').getContext('2d')
+function sprite(color, size) { const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); const r = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2); r.addColorStop(0, color); r.addColorStop(.25, color.replace(/[\d.]+\)$/, '.55)')); r.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = r; g.fillRect(0, 0, size, size); return c }
+const sprEmber = sprite('rgba(255,170,90,1)', 64), sprPurple = sprite('rgba(176,140,255,1)', 64), sprGold = sprite('rgba(255,214,120,1)', 64)
+const R = rng(7)
+const embers = Array.from({ length: 220 }, () => ({ x: R() * 1920, y: R() * 1300, s: 4 + R() * 22, v: 40 + R() * 160, ph: R() * 10, amp: 10 + R() * 50, warm: R() < .72, tw: R() * 6 }))
+const confetti = Array.from({ length: 160 }, () => ({ a: R() * Math.PI * 2, v: 500 + R() * 1100, spin: (R() - .5) * 20, size: 8 + R() * 14, hue: [265, 30, 45, 200, 140][Math.floor(R() * 5)], g: 900 + R() * 600 }))
+const grains = Array.from({ length: 6 }, (_, k) => { const c = document.createElement('canvas'); c.width = 480; c.height = 270; const g = c.getContext('2d'); const d = g.createImageData(480, 270); const r = rng(100 + k); for (let i = 0; i < d.data.length; i += 4) { const v = r() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255 } g.putImageData(d, 0, 0); return c })
+
+function drawBackground(t, intensity, purpleMix) {
+  bg.clearRect(0, 0, 1920, 1080)
+  // vazamentos de luz que passeiam pela tela
+  bg.globalCompositeOperation = 'lighter'
+  const leaks = [[.25, .8, 'rgba(255,120,50,'], [.8, .25, 'rgba(140,100,255,'], [.55, .55, 'rgba(255,90,120,']]
+  leaks.forEach(([fx0, fy0, col], k) => {
+    const x = 1920 * (fx0 + Math.sin(t * .35 + k * 2) * .12), y = 1080 * (fy0 + Math.cos(t * .28 + k) * .1)
+    const g = bg.createRadialGradient(x, y, 0, x, y, 900)
+    g.addColorStop(0, col + (.10 * intensity).toFixed(3) + ')'); g.addColorStop(1, col + '0)')
+    bg.fillStyle = g; bg.fillRect(0, 0, 1920, 1080)
+  })
+  // brasas subindo
+  for (const p of embers) {
+    const y = ((p.y - p.v * t) % 1300 + 1300) % 1300 - 110
+    const x = p.x + Math.sin(t * 1.3 + p.ph) * p.amp
+    const flick = .55 + .45 * Math.sin(t * 9 + p.tw)
+    const life = clamp((1080 - y) / 1080)
+    const a = intensity * flick * (.25 + life * .75)
+    if (a < .02) continue
+    bg.globalAlpha = Math.min(1, a)
+    const spr = p.warm ? (purpleMix > .5 && p.s < 12 ? sprPurple : sprEmber) : sprPurple
+    bg.drawImage(spr, x - p.s, y - p.s, p.s * 2, p.s * 2)
+  }
+  bg.globalAlpha = 1; bg.globalCompositeOperation = 'source-over'
+}
+
+
+// ===================== trailer de lançamento (30 s) =====================
+// 0–6 tensão · 6 ignição + logo · 7,5–19,5 oito cortes de funções (1,5 s = 3 tempos a 120 BPM) · 19,5–23 respiro · 23–27 clímax · 27–30 cartela.
+const place = (id, cx, cy, transform) => set(id, { left: `${cx - 190}px`, top: `${cy - 395}px`, transform })
+function scrollImg(scroller, p) {
+  const img = scroller.querySelector('img')
+  const h = img.naturalHeight * 352 / (img.naturalWidth || 1)
+  scroller.style.transform = `translateY(${-Math.max(0, h - 762) * p}px)`
+}
+const maskLetters = (id, text) => { $(id).innerHTML = [...text].map(c => `<span class="mask"><span>${c}</span></span>`).join('') }
+const phone = (id, shot, extra = '') => `<div class="mphone" id="${id}"><div class="notch"></div><div class="glass"><div class="screen"><div class="scroller" id="${id}-s"><img src="shots/${shot}.png">${extra}</div></div><div class="sheen"></div></div></div>`
+const sheenSweep = (id, t, a) => { $(id).querySelector('.sheen').style.transform = `translateX(${lerp(-130, 130, prog(t, a, a + .8))}%)` }
+const pad2 = n => String(n).padStart(2, '0')
+maskLetters('logo-word', 'CAVERN')
+
+// ---- oito cortes ----
+const CUT0 = 7.5, CUT = 1.5
+const cuts = [
+  ['mm-home', 'Hábitos', 'MARQUE', 'Um toque e o dia avança.', 0],
+  ['mm-focus', 'Foco', 'FOQUE', 'Sessões que viram histórico.', 0],
+  ['mm-gym', 'Academia', 'EVOLUA', 'Cada treino vira gráfico.', 0],
+  ['mm-chat', 'Assistente IA', 'CONVERSE', 'Com os seus dados, do seu jeito.', 0],
+  ['mm-ach-full', 'Conquistas', 'CONQUISTE', '18 marcos para desbloquear.', .14],
+  ['mm-shop', 'Loja', 'PERSONALIZE', 'Mascote, fogueira e estilo.', 0],
+  ['mm-finance-full', 'Finanças', 'ORGANIZE', 'Saldo, metas e Bitcoin.', .05],
+  ['mm-checkins-full', 'Check-in', 'REFLITA', 'Como foi o seu dia?', .2],
+]
+// toque no primeiro hábito (coordenadas da captura 1170×2532)
+const tapOverlay = '<div class="ov"><div class="done-chk" id="c0k" style="left:127px;top:1297px;width:72px;height:72px">✓</div><div class="done-btn" id="c0b" style="left:804px;top:1268px;width:246px;height:131px">Desfazer</div><div class="rip" id="c0r" style="left:927px;top:1333px"></div></div>'
+$('cuts').innerHTML = cuts.map(([shot, kicker, word, sub], i) => {
+  const right = i % 2 === 0, x = right ? 140 : 1060
+  return `<section class="cut" id="cut${i}">
+    <div class="cn" id="cn${i}" style="left:${x}px;top:250px">${pad2(i + 1)} / 08</div>
+    <div class="ck" id="ck${i}" style="left:${x}px;top:300px">${kicker}</div>
+    <div class="cw" id="cw${i}" style="left:${x}px;top:350px;font-size:230px">${word}<b>.</b></div>
+    <div class="cs" id="cs${i}" style="left:${x}px;top:600px">${sub}</div>
+    ${phone('cp' + i, shot, i === 0 ? tapOverlay : '')}
+  </section>`
+}).join('')
+// a palavra grande cabe em 800 px: palavras longas ("PERSONALIZE.") ganham fonte menor
+cuts.forEach((_, i) => {
+  const el = $('cw' + i); let size = 230
+  while (el.scrollWidth > 800 && size > 100) { size -= 6; el.style.fontSize = `${size}px` }
+  $('cs' + i).style.top = `${350 + size * .92 + 40}px`
+})
+
+// ---- parede de telas ----
+const wallShots = ['mm-home', 'mm-gym', 'mm-shop', 'mm-focus', 'mm-chat', 'mm-home-light', 'mm-ach-full', 'mm-cavern-full', 'mm-checkins-full', 'mm-shop-light']
+$('tw-wall').innerHTML = wallShots.map((s, k) => phone('wp' + k, s)).join('')
+wallShots.forEach((_, k) => { const c = k % 5, r = Math.floor(k / 5); place('wp' + k, (c - 2) * 430, (r - .5) * 860, 'scale(.95)') })
+
+document.querySelectorAll('.mphone').forEach(p => p.querySelector('.glass').appendChild(p.querySelector('.sheen')))
+
+// ---- efeitos ----
+function drawFx(t, frame) {
+  fx.clearRect(0, 0, 1920, 1080)
+  for (const [h, cx, cy] of [[6.0, 960, 320], [27.0, 960, 260]]) {
+    const st = t - h
+    if (st > 0 && st < 1.4) {
+      const r = rng(h * 100)
+      for (let i = 0; i < 110; i++) {
+        const a = r() * Math.PI * 2, v = 300 + r() * 1000, x = cx + Math.cos(a) * v * st, y = cy + Math.sin(a) * v * st + 600 * st * st
+        fx.globalAlpha = clamp(1 - st / 1.4) * (.5 + r() * .5); const s = 6 + r() * 16
+        fx.globalCompositeOperation = 'lighter'; fx.drawImage(r() < .5 ? sprGold : sprEmber, x - s, y - s, s * 2, s * 2)
+      }
+      fx.globalCompositeOperation = 'source-over'
+    }
+  }
+  fx.globalAlpha = 1
+  // vinheta mais fechada na abertura (clima de trailer)
+  const dark = t < 6 ? .9 : .72
+  const v = fx.createRadialGradient(960, 540, 380, 960, 540, 1150)
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, `rgba(0,0,0,${dark})`)
+  fx.fillStyle = v; fx.fillRect(0, 0, 1920, 1080)
+  fx.globalAlpha = .06; fx.globalCompositeOperation = 'overlay'
+  fx.drawImage(grains[frame % grains.length], 0, 0, 1920, 1080)
+  fx.globalAlpha = 1; fx.globalCompositeOperation = 'source-over'
+}
+
+// ===================== cenas =====================
+const scenes = [['t-intro', 0, 6.05], ['t-logo', 5.98, 7.6], ...cuts.map((_, i) => [`cut${i}`, CUT0 + i * CUT - .05, CUT0 + (i + 1) * CUT + .05]), ['t-wall', 19.45, 23.15], ['t-peak', 23.0, 27.05], ['t-end', 26.98, 30]]
+function envelope(el, t, a, b, fast) {
+  const inD = fast ? .16 : .35, outD = fast ? .14 : .3
+  const inP = tw(t, a, a + inD, E.outExpo), outP = tw(t, b - outD, b, E.inExpo)
+  set(el, { opacity: (inP * (1 - outP)).toFixed(3), transform: `scale(${lerp(1.06, 1, inP) * lerp(1, 1.14, outP)})`, filter: `blur(${(1 - inP) * 12 + outP * 16}px)` })
+}
+const line = (id, t, a, b, glitch = false) => {
+  const inP = tw(t, a, a + .35, E.outCubic), outP = tw(t, b - .3, b, E.inCubic), on = t >= a && t <= b
+  const jitter = glitch && t - a < .25 ? noise1(t * 60, a) * 14 : 0
+  set(id, { opacity: on ? (inP * (1 - outP)).toFixed(3) : 0, filter: `blur(${(1 - inP) * 10 + outP * 8}px)`, transform: `translateY(-50%) translateX(${jitter}px) scale(${lerp(1.05, 1, inP)})`, textShadow: glitch && t - a < .2 ? '6px 0 rgba(255,60,90,.6), -6px 0 rgba(60,200,255,.6)' : 'none' })
+}
+const flameWobble = (id, t, s) => set(id, { transform: `scale(${s}) scaleY(${1 + noise1(t * 6) * .07}) skewX(${noise1(t * 5) * 4}deg)`, filter: `drop-shadow(0 0 ${50 + Math.sin(t * 8) * 10}px rgba(255,140,60,.85))` })
+
+function render(t) {
+  const frame = Math.round(t * FPS)
+  const hit = hitAmount(t)
+  set('stage', { transform: `translate(${noise1(t * 40, 1) * hit * 14}px, ${noise1(t * 40, 5) * hit * 10}px)` })
+  set('flash', { opacity: (Math.max(...[6.0, 27.0].map(h => t >= h ? Math.exp(-(t - h) * 9) : 0)) * .55 + hit * .05).toFixed(3) })
+  $('letterbox').style.setProperty('--lb', `${140 * (1 - tw(t, 6.0, 6.7, E.inOutCubic)) + 110 * tw(t, 29.0, 29.8, E.inOutCubic)}px`)
+  const intensity = t < 6 ? .15 + prog(t, 4.4, 6) * .45 : t < 19.5 ? .9 + beatPulse(t, 7.5, 19.5) * .35 : t < 23 ? .7 : t < 27 ? lerp(.8, 1.15, prog(t, 23, 27)) : t > 29.3 ? lerp(1, 0, prog(t, 29.3, 30)) : 1
+  drawBackground(t, intensity, t < 6 ? 0 : prog(t, 7, 22))
+
+  for (const [id, a, b] of scenes) { const on = t >= a && t <= b; show(id, on); if (on) envelope($(id), t, a, b, id.startsWith('cut')) }
+  if (t < 5.9) set('t-intro', { opacity: 1, filter: 'none', transform: 'none' })
+  if (t > 29.4) set('t-end', { filter: 'none' })
+
+  // ---------- 1 · tensão ----------
+  if (t <= 6.05) {
+    line('tl0', t, .3, 1.55); line('tl1', t, 1.6, 2.55, true); line('tl2', t, 2.6, 3.45, true); line('tl3', t, 3.5, 4.3, true); line('tl4', t, 4.4, 6.05)
+    set('tl4', { top: '42%' })
+    const e = tw(t, 4.9, 5.4, E.outBack), rise = tw(t, 5.5, 6.0, E.inCubic)
+    set('ember', { opacity: tw(t, 4.9, 5.1), transform: `translateY(${-rise * 40}px) scale(${lerp(0, .35, e) + rise * .35}) scaleY(${1 + noise1(t * 7) * .1})`, filter: `drop-shadow(0 0 ${30 + rise * 60}px rgba(255,140,60,.8))` })
+  }
+  // ---------- 2 · ignição ----------
+  if (t >= 5.98 && t <= 7.6) {
+    flameWobble('logo-fire', t, lerp(.25, 1, tw(t, 6.0, 6.55, E.outElastic)))
+    $('logo-word').querySelectorAll('.mask > span').forEach((s, i) => { const p = tw(t, 6.2 + i * .06, 6.7 + i * .06, E.outExpo); s.style.transform = `translateY(${(1 - p) * 110}%) rotate(${(1 - p) * 8}deg)` })
+    set('logo-word', { textShadow: `0 0 ${40 + hit * 60}px rgba(156,125,232,.7)` })
+  }
+  // ---------- 3 · cortes ----------
+  cuts.forEach(([, , , , scroll], i) => {
+    const a = CUT0 + i * CUT
+    if (t < a - .05 || t > a + CUT + .05) return
+    const right = i % 2 === 0, dir = right ? -1 : 1, cx = right ? 1270 : 650
+    const p = tw(t, a - .05, a + .4, E.outQuint)
+    place('cp' + i, cx, 560, `translateY(${(1 - p) * 760}px) rotateY(${dir * lerp(34, 16, p) + Math.sin(t * 1.5) * 2}deg) rotateZ(${-dir * lerp(9, 2, p)}deg) scale(1.3)`)
+    if (scroll) scrollImg($('cp' + i + '-s'), tw(t, a + .4, a + CUT, E.inOutCubic) * scroll)
+    sheenSweep('cp' + i, t, a + .5)
+    const w = tw(t, a + .06, a + .42, E.outQuint)
+    set('cw' + i, { clipPath: `inset(-10% ${(1 - w) * 100}% -10% 0)`, transform: `translateY(${(1 - w) * 30}px) scale(${1 + beatPulse(t, a, a + CUT) * .02})` })
+    set('ck' + i, { opacity: tw(t, a, a + .25), transform: `translateX(${(1 - tw(t, a, a + .4)) * 40 * -dir}px)` })
+    set('cn' + i, { opacity: tw(t, a + .05, a + .3) })
+    set('cs' + i, { opacity: tw(t, a + .3, a + .55), transform: `translateY(${(1 - tw(t, a + .3, a + .6)) * 20}px)` })
+    if (i === 0) {
+      const r = prog(t, a + .55, a + 1.0)
+      set('c0r', { opacity: r > 0 && r < 1 ? (1 - r) * .95 : 0, transform: `scale(${lerp(.3, 1.5, E.outCubic(r))})` })
+      const on = t > a + .65, s = tw(t, a + .65, a + .95, E.outBack)
+      ;['c0k', 'c0b'].forEach(id => set(id, { opacity: on ? 1 : 0, transform: `scale(${on ? s : .6})` }))
+    }
+  })
+  // ---------- 4 · respiro ----------
+  if (t >= 19.45 && t <= 23.15) {
+    const d = tw(t, 19.45, 23.15, E.inOutCubic)
+    set('tw-wall', { transform: `translateZ(${lerp(-1300, -650, d)}px) rotateX(${lerp(32, 20, d)}deg) rotateZ(${lerp(-12, -6, d)}deg) translateX(${lerp(320, -320, d)}px)` })
+    wallShots.forEach((_, k) => set('wp' + k, { opacity: tw(t, 19.5 + (k % 5) * .05 + Math.floor(k / 5) * .1, 19.85 + (k % 5) * .05 + Math.floor(k / 5) * .1) }))
+    ;[['wl0', 19.6, 20.6], ['wl1', 20.6, 21.6], ['wl2', 21.6, 23.15]].forEach(([id, a, b]) => {
+      const inP = tw(t, a, a + .3, E.outExpo), outP = tw(t, b - .2, b, E.inCubic), on = t >= a && t <= b
+      set(id, { opacity: on ? (inP * (1 - outP)).toFixed(3) : 0, transform: `translateY(-50%) scale(${lerp(1.18, 1, inP)})`, letterSpacing: `${lerp(.1, -.03, inP)}em` })
+    })
+  }
+  // ---------- 5 · clímax ----------
+  if (t >= 23.0 && t <= 27.05) {
+    const push = lerp(1, 1.06, tw(t, 25.6, 27.0, E.inCubic))
+    set('t-peak', { transform: `scale(${push})` })
+    flameWobble('peak-fire', t, lerp(.4, 1, tw(t, 23.05, 23.6, E.outElastic)) * (1 + beatPulse(t, 23, 27) * .04))
+    $('peak-n').textContent = Math.round(lerp(1, 60, tw(t, 23.2, 24.7, E.outCubic)))
+    set('peak-n', { opacity: tw(t, 23.1, 23.35), transform: `scale(${1 + beatPulse(t, 23, 25) * .05})` })
+    set('peak-label', { opacity: tw(t, 23.4, 23.7), letterSpacing: `${lerp(.7, .32, tw(t, 23.4, 24))}em` })
+    ;[['peak-tag1', 25.0], ['peak-tag2', 25.25]].forEach(([id, a]) => { const p = tw(t, a, a + .5, E.outQuint); set(id, { opacity: tw(t, a, a + .2), transform: `translateY(${(1 - p) * 60}px)`, filter: `blur(${(1 - p) * 8}px)` }) })
+  }
+  // ---------- 6 · cartela ----------
+  if (t >= 26.98) {
+    flameWobble('end-fire', t, lerp(0, 1, tw(t, 27.0, 27.6, E.outElastic)))
+    const lp = tw(t, 27.15, 27.9, E.outExpo)
+    set('end-logo', { opacity: lp, letterSpacing: `${lerp(.8, .2, lp)}em`, filter: `blur(${(1 - lp) * 20}px)`, textShadow: '0 0 50px rgba(156,125,232,.6)' })
+    const c = tw(t, 27.6, 28.1, E.outBack)
+    set('end-cta', { opacity: tw(t, 27.6, 27.75), transform: `scale(${lerp(.7, 1, c)})` })
+    set('end-platforms', { opacity: tw(t, 27.95, 28.3), letterSpacing: `${lerp(.7, .32, tw(t, 27.95, 28.6))}em` })
+    set('end-small', { opacity: tw(t, 28.3, 28.7) * .6 })
+    set('t-end', { opacity: 1 - tw(t, 29.4, 30, E.inCubic) })
+  }
+
+  drawFx(t, frame)
+}
+
+window.render = render
+window.ready = Promise.all([...document.images].map(i => i.decode().catch(() => {})))
+if (location.search.includes('play')) { const t0 = performance.now(); const loop = now => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop) }; window.ready.then(() => requestAnimationFrame(loop)) }
+else render(0)
+
+</script>
+</body>
+</html>
