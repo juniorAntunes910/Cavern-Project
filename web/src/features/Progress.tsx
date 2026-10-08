@@ -523,6 +523,12 @@ function ActivityChart({
   const width = 620;
   const gap = 10;
   const barWidth = (width - gap * (values.length + 1)) / values.length;
+  const scroller = useRef<HTMLDivElement>(null);
+  // No celular o gráfico rola na horizontal; começa mostrando os dias mais recentes (hoje fica à direita).
+  useEffect(() => {
+    const element = scroller.current;
+    if (element) element.scrollLeft = element.scrollWidth;
+  }, []);
   return (
     <article className="activity-chart">
       <div className="chart-title">
@@ -532,7 +538,7 @@ function ActivityChart({
         </div>
         <span>hábitos concluídos</span>
       </div>
-      <div className="activity-chart-scroll" role="region" aria-label="Navegação horizontal do gráfico" tabIndex={0}>
+      <div ref={scroller} className="activity-chart-scroll" role="region" aria-label="Navegação horizontal do gráfico" tabIndex={0}>
         <svg
           role="img"
           aria-label="Gráfico de hábitos concluídos nos últimos catorze dias"
